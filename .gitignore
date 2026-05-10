@@ -1,0 +1,62 @@
+# ─── Maven Build Output ───────────────────────────────────────────────────────
+# The 'target' folder is generated every time you run 'mvn clean package'.
+# It contains compiled .class files, JARs, test reports — all regenerated.
+# Never commit this — it bloats the repo and causes conflicts.
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ─── Maven Wrapper ────────────────────────────────────────────────────────────
+.mvn/wrapper/maven-wrapper.properties
+
+# ─── Spring Boot Specific ─────────────────────────────────────────────────────
+# Local override file — used to override application.properties locally.
+# Never commit this — it may contain real secrets.
+application-local.properties
+application-local.yml
+
+# ─── Environment / Secrets ────────────────────────────────────────────────────
+# .env files hold local secrets like API keys. NEVER commit these.
+.env
+.env.*
+*.secret
+
+# ─── IntelliJ IDEA ────────────────────────────────────────────────────────────
+# IDE project files — specific to each developer's machine.
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# ─── VS Code ──────────────────────────────────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ─── Eclipse ──────────────────────────────────────────────────────────────────
+.classpath
+.project
+.settings/
+bin/
+
+# ─── OS Generated Files ───────────────────────────────────────────────────────
+# Windows
+Thumbs.db
+Desktop.ini
+# macOS
+.DS_Store
+._*
+# Linux
+*~
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+spring.log
+
+# ─── Compiled Files ───────────────────────────────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz

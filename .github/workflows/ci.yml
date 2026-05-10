@@ -1,0 +1,100 @@
+# ════════════════════════════════════════════════════════════════
+# CI Pipeline — spring-projects-hub
+# Runs on every push/PR to main. Builds and tests the RAG app.
+# ════════════════════════════════════════════════════════════════
+
+name: Spring RAG App — Build & Test
+
+# ─── TRIGGER ─────────────────────────────────────────────────────────────────
+# This block defines WHEN GitHub should run this pipeline.
+on:
+  push:
+    branches: [ main ]          # Run when code is pushed to main
+    paths:
+      - 'spring-rag-app/**'     # ONLY run if files inside spring-rag-app/ changed
+      - '.github/workflows/**'  # Also run if the pipeline itself changed
+  pull_request:
+    branches: [ main ]          # Run when someone opens a PR targeting main
+    paths:
+      - 'spring-rag-app/**'
+
+# ─── JOBS ────────────────────────────────────────────────────────────────────
+# A job is a group of steps that run together on one machine (runner).
+# You can have multiple jobs — they can run in parallel or depend on each other.
+jobs:
+
+  build-and-test:
+    # GitHub provides a free Ubuntu Linux virtual machine for each run.
+    # This VM is clean and temporary — it's destroyed after the job finishes.
+    runs-on: ubuntu-latest
+
+    # ─── STEPS ───────────────────────────────────────────────────────────────
+    # Steps run sequentially inside the job. If any step fails, the job stops.
+    steps:
+
+      # STEP 1 — Checkout
+      # Downloads your repository's code onto the runner VM.
+      # Without this, the VM has no idea what your project is.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # STEP 2 — Set up Java
+      # Installs Java 21 (Temurin = Eclipse open-source JDK) on the runner VM.
+      # The VM doesn't have Java pre-installed — we tell it which version we need.
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'   # Eclipse Temurin — free, production-grade JDK
+
+      # STEP 3 — Cache Maven dependencies
+      # Maven downloads all your dependencies (Spring Boot, etc.) from the internet.
+      # Without caching, every pipeline run re-downloads ~200MB — slow and wasteful.
+      # This step saves the ~/.m2 folder between runs using the pom.xml as a cache key.
+      # If pom.xml didn't change → uses the cached folder → saves 1-2 minutes per run.
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # STEP 4 — Build and Test
+      # This is the heart of the pipeline. Runs inside the spring-rag-app/ folder.
+      # 'mvn clean verify' does:
+      #   clean   → deletes any old build output
+      #   verify  → compiles + runs all unit tests + checks everything passes
+      # The secrets from GitHub Settings → Secrets are injected as env variables here.
+      # Your application.properties reads them via ${GEMINI_API_KEY} and ${JWT_SECRET}.
+      - name: Build and run tests
+        working-directory: spring-rag-app
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: mvn clean verify
+
+      # STEP 5 — Upload test report
+      # After tests run, Maven generates an HTML/XML report in target/surefire-reports/.
+      # This step uploads it so you can download and read it from the GitHub Actions UI.
+      # 'if: always()' means: run this step even if Step 4 failed — so you can see
+      # WHY the tests failed even when the build is broken.
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: spring-rag-app/target/surefire-reports/
+          retention-days: 7         # Auto-deleted after 7 days to save storage
+
+      # STEP 6 — Upload built JAR (only on success)
+      # If all tests pass, upload the final JAR file as an artifact.
+      # You can download this JAR from the GitHub Actions run page.
+      # In Phase 2 (CD), this JAR would be deployed to a server automatically.
+      - name: Upload JAR artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spring-rag-app-jar
+          path: spring-rag-app/target/*.jar
+          retention-days: 7
