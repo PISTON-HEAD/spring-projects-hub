@@ -1,6 +1,7 @@
 .git
 .idea
 .vscode
+.docker-tmp-config
 target
 *.iml
 *.log

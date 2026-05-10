@@ -75,6 +75,11 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: mvn clean verify -DskipTests
 
+      - name: Build Docker image
+        if: success()
+        working-directory: spring-rag-app
+        run: docker build -t spring-rag-app:${{ github.sha }} .
+
       # STEP 5 — Upload test report
       # After tests run, Maven generates an HTML/XML report in target/surefire-reports/.
       # This step uploads it so you can download and read it from the GitHub Actions UI.
