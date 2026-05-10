@@ -80,7 +80,9 @@ jobs:
       # This step uploads it so you can download and read it from the GitHub Actions UI.
       # 'if: always()' means: run this step even if Step 4 failed — so you can see
       # WHY the tests failed even when the build is broken.
+      # 'id' gives this step a name so later steps can read its output (the artifact URL).
       - name: Upload test report
+        id: upload-test-report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -92,10 +94,44 @@ jobs:
       # If all tests pass, upload the final JAR file as an artifact.
       # You can download this JAR from the GitHub Actions run page.
       # In Phase 2 (CD), this JAR would be deployed to a server automatically.
+      # 'id' gives this step a name so later steps can read its output (the artifact URL).
       - name: Upload JAR artifact
+        id: upload-jar
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: spring-rag-app-jar
           path: spring-rag-app/target/*.jar
           retention-days: 7
+
+      # STEP 7 — Write Job Summary
+      # $GITHUB_STEP_SUMMARY is a special GitHub file. Anything written to it
+      # appears as a formatted markdown panel at the bottom of the workflow run page.
+      # This gives you clickable download links without hunting through the UI.
+      # 'if: always()' ensures the summary is written even if the build failed.
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Spring RAG App — Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Detail |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Runner OS | ${{ runner.os }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.upload-jar.outcome }}" == "success" ]; then
+            echo "### JAR File" >> $GITHUB_STEP_SUMMARY
+            echo "[Download spring-rag-app JAR](${{ steps.upload-jar.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.upload-test-report.outcome }}" == "success" ]; then
+            echo "### Test Report" >> $GITHUB_STEP_SUMMARY
+            echo "[Download Test Report](${{ steps.upload-test-report.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "_Artifacts are retained for 7 days_" >> $GITHUB_STEP_SUMMARY
