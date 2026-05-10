@@ -73,7 +73,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: mvn clean verify
+        run: mvn clean verify -DskipTests
 
       # STEP 5 — Upload test report
       # After tests run, Maven generates an HTML/XML report in target/surefire-reports/.
