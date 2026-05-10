@@ -17,6 +17,7 @@ on:
     branches: [ main ]          # Run when someone opens a PR targeting main
     paths:
       - 'spring-rag-app/**'
+  workflow_dispatch:            # Allows you to trigger this pipeline manually from GitHub UI
 
 # ─── JOBS ────────────────────────────────────────────────────────────────────
 # A job is a group of steps that run together on one machine (runner).
