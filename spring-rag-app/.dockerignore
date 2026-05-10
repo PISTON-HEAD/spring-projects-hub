@@ -1,0 +1,8 @@
+.git
+.idea
+.vscode
+target
+*.iml
+*.log
+README.md
+Spring-RAG-App.postman_collection.json
