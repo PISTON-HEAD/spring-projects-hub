@@ -1,0 +1,106 @@
+type Query {
+  """
+  Find a patient by identifier value
+  """
+  patient(identifier: String!): PatientResult
+
+  """
+  Find patients by gender
+  """
+  patientsByGender(gender: String!): PatientBundleResult
+
+  """
+  Find patients by last name
+  """
+  patientsByLastName(lastName: String!): PatientBundleResult
+
+  """
+  Find patients by first name
+  """
+  patientsByFirstName(firstName: String!): PatientBundleResult
+
+  """
+  Get all patients
+  """
+  allPatients: PatientBundleResult
+}
+
+"""
+Single patient result containing FHIR Patient resource as JSON
+"""
+type PatientResult {
+  """
+  FHIR Patient resource in JSON format
+  """
+  fhirResource: String
+
+  """
+  Patient ID
+  """
+  id: ID
+
+  """
+  Patient first name
+  """
+  firstName: String
+
+  """
+  Patient last name
+  """
+  lastName: String
+
+  """
+  Patient gender
+  """
+  gender: String
+
+  """
+  Patient date of birth
+  """
+  dateOfBirth: String
+
+  """
+  Patient identifiers
+  """
+  identifiers: [PatientIdentifier]
+}
+
+"""
+Bundle result containing multiple FHIR Patient resources
+"""
+type PatientBundleResult {
+  """
+  FHIR Bundle resource in JSON format
+  """
+  fhirBundle: String
+
+  """
+  Total number of patients in the bundle
+  """
+  total: Int
+
+  """
+  List of patients
+  """
+  patients: [PatientResult]
+}
+
+"""
+Patient identifier
+"""
+type PatientIdentifier {
+  """
+  Identifier type (e.g., MRN, AccountNumber, VisitNumber)
+  """
+  type: String
+
+  """
+  Identifier value
+  """
+  value: String
+
+  """
+  System that issued the identifier
+  """
+  system: String
+}
