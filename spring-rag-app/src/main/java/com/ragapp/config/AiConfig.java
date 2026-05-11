@@ -11,10 +11,14 @@ public class AiConfig {
 
     @Bean
     @Primary
-    public EmbeddingModel embeddingModel() throws Exception {
-        OnnxEmbeddingModel model = new OnnxEmbeddingModel();
-        model.afterPropertiesSet();
-        return model;
+    public EmbeddingModel embeddingModel(OnnxEmbeddingModel onnxEmbeddingModel) throws Exception {
+        onnxEmbeddingModel.afterPropertiesSet();
+        return onnxEmbeddingModel;
+    }
+
+    @Bean
+    public OnnxEmbeddingModel onnxEmbeddingModel() {
+        return new OnnxEmbeddingModel();
     }
 
     @Bean

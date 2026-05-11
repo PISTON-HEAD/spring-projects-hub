@@ -53,6 +53,11 @@ Desktop.ini
 logs/
 spring.log
 
+# ─── Node.js (VS Code tooling / accidental installs) ─────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+
 # ─── Compiled Files ───────────────────────────────────────────────────────────
 *.class
 *.jar

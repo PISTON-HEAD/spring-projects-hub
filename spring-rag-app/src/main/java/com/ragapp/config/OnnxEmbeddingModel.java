@@ -30,15 +30,15 @@ import ai.onnxruntime.OrtSession;
  */
 public class OnnxEmbeddingModel extends AbstractEmbeddingModel implements InitializingBean {
 
-    // Use the same URLs as Spring AI's default TransformersEmbeddingModel.
-    // ResourceCacheService stores them in ${java.io.tmpdir}/spring-ai-onnx-generative
-    // and serves from disk on subsequent starts — no network call if already cached.
-    private static final String TOKENIZER_URI =
-            "https://raw.githubusercontent.com/spring-projects/spring-ai/main"
-            + "/models/spring-ai-transformers/src/main/resources/onnx/all-MiniLM-L6-v2/tokenizer.json";
-    private static final String MODEL_URI =
-            "https://media.githubusercontent.com/media/spring-projects/spring-ai"
-            + "/refs/heads/main/models/spring-ai-transformers/src/main/resources/onnx/all-MiniLM-L6-v2/model.onnx";
+    // URIs are read from application.properties (rag.onnx.tokenizer-uri / rag.onnx.model-uri).
+    // Defaults point to GitHub — works for local dev.
+    // In Docker/Render the Dockerfile passes -Drag.onnx.model-uri=file:/app/onnx-models/model.onnx
+    // so the baked-in local file is used — zero network calls at startup.
+    @org.springframework.beans.factory.annotation.Value("${rag.onnx.tokenizer-uri}")
+    private String tokenizerUri;
+
+    @org.springframework.beans.factory.annotation.Value("${rag.onnx.model-uri}")
+    private String modelUri;
 
     private HuggingFaceTokenizer tokenizer;
     private OrtEnvironment environment;
@@ -52,13 +52,13 @@ public class OnnxEmbeddingModel extends AbstractEmbeddingModel implements Initia
         DefaultResourceLoader loader = new DefaultResourceLoader();
 
         this.tokenizer = HuggingFaceTokenizer.newInstance(
-                cache.getCachedResource(loader.getResource(TOKENIZER_URI)).getInputStream(),
+                cache.getCachedResource(loader.getResource(tokenizerUri)).getInputStream(),
                 Map.of());
 
         this.environment = OrtEnvironment.getEnvironment();
         try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions()) {
             this.session = environment.createSession(
-                    cache.getCachedResource(loader.getResource(MODEL_URI)).getContentAsByteArray(),
+                    cache.getCachedResource(loader.getResource(modelUri)).getContentAsByteArray(),
                     opts);
         }
     }
