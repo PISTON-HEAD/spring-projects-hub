@@ -57,9 +57,14 @@ public class OnnxEmbeddingModel extends AbstractEmbeddingModel implements Initia
 
         this.environment = OrtEnvironment.getEnvironment();
         try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions()) {
-            this.session = environment.createSession(
-                    cache.getCachedResource(loader.getResource(modelUri)).getContentAsByteArray(),
-                    opts);
+            // If the URI is a local file://, pass the file path directly to ONNX Runtime.
+            // This lets the native runtime load the model via mmap — no Java heap allocation
+            // for the 86MB model bytes. On Render's 512MB limit this is critical.
+            // For http:// URIs (local dev fallback), download via cache then load by path.
+            org.springframework.core.io.Resource modelResource =
+                    cache.getCachedResource(loader.getResource(modelUri));
+            String modelPath = modelResource.getFile().getAbsolutePath();
+            this.session = environment.createSession(modelPath, opts);
         }
     }
 
