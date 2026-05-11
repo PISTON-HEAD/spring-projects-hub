@@ -29,24 +29,23 @@ jobs:
           rsync -av --delete --exclude='.git' spring-rag-app/ hf-space/
 
           cd hf-space
-          # Write HF Space README with required metadata (no leading spaces in heredoc)
-          cat > README.md << 'EOF'
-            ---
-            title: Spring RAG App
-            emoji: 🤖
-            colorFrom: blue
-            colorTo: green
-            sdk: docker
-            app_port: 7860
-            pinned: false
-            ---
-
-            # Spring RAG Application
-
-            A Spring Boot RAG (Retrieval-Augmented Generation) application
-            using Google Gemini AI and ONNX sentence embeddings.
-            EOF
-                    git add .
+          # Write HF Space README with required metadata
+          printf '%s\n' \
+            '---' \
+            'title: Spring RAG App' \
+            'emoji: 🤖' \
+            'colorFrom: blue' \
+            'colorTo: green' \
+            'sdk: docker' \
+            'app_port: 7860' \
+            'pinned: false' \
+            '---' \
+            '' \
+            '# Spring RAG Application' \
+            '' \
+            'A Spring Boot RAG app using Google Gemini AI and ONNX embeddings.' \
+            > README.md
+          git add .
           # Only commit if there are actual changes
           git diff --staged --quiet || git commit -m "Deploy: ${{ github.sha }}"
           git push
