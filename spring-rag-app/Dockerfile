@@ -27,7 +27,7 @@ COPY --from=build /workspace/onnx-models /app/onnx-models/
 # Set /tmp as the Java temp dir.
 # Set JVM memory limit suitable for Render free tier (512MB RAM).
 # Set the ONNX model paths as system properties so OnnxEmbeddingModel reads local files.
-ENV JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/tmp -XX:MaxRAMPercentage=75.0"
+ENV JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=/tmp -Xmx192m -XX:MaxMetaspaceSize=128m -XX:+UseSerialGC"
 
 COPY --from=build /workspace/target/*.jar /app/app.jar
 
