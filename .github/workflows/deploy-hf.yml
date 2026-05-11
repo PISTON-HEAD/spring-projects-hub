@@ -1,0 +1,53 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'spring-rag-app/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Clone the HF Space repo
+          git clone https://GokuKrishna:${HF_TOKEN}@huggingface.co/spaces/GokuKrishna/spring-rag-app hf-space
+
+          # Sync spring-rag-app/ contents into the Space root (Dockerfile must be at root)
+          rsync -av --delete --exclude='.git' spring-rag-app/ hf-space/
+
+          # Write the HF Space README with required metadata frontmatter
+          cat > hf-space/README.md << 'EOF'
+          ---
+          title: Spring RAG App
+          emoji: 🤖
+          colorFrom: blue
+          colorTo: green
+          sdk: docker
+          app_port: 7860
+          pinned: false
+          ---
+
+          # Spring RAG Application
+
+          A Spring Boot RAG (Retrieval-Augmented Generation) application
+          using Google Gemini AI and ONNX sentence embeddings.
+          EOF
+
+          cd hf-space
+          git add .
+          # Only commit if there are actual changes
+          git diff --staged --quiet || git commit -m "Deploy: ${{ github.sha }}"
+          git push

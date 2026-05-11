@@ -33,10 +33,10 @@ COPY --from=build /workspace/target/*.jar /app/app.jar
 
 # Render injects PORT env var — Spring Boot reads server.port from it.
 # Falls back to 8082 for local Docker runs.
-EXPOSE 8082
+EXPOSE 7860
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS \
-    -Dserver.port=${PORT:-8082} \
+    -Dserver.port=${PORT:-7860} \
     -Drag.onnx.tokenizer-uri=file:/app/onnx-models/tokenizer.json \
     -Drag.onnx.model-uri=file:/app/onnx-models/model.onnx \
  -jar /app/app.jar"]
