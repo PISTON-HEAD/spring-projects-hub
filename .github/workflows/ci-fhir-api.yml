@@ -1,0 +1,150 @@
+# ════════════════════════════════════════════════════════════════
+# CI Pipeline — fhir-api-application
+# Runs on every push/PR to main that touches fhir-api-application.
+# Spins up a real MySQL instance as a service container, then
+# builds and tests the Spring Boot FHIR GraphQL API.
+# ════════════════════════════════════════════════════════════════
+
+name: FHIR API — Build & Test
+
+# ─── TRIGGER ──────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'fhir-api-application/**'   # Only run when FHIR app code changes
+      - '.github/workflows/**'      # Also run if any workflow file changes
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'fhir-api-application/**'
+  workflow_dispatch:                # Allow manual trigger from GitHub UI
+
+# ─── JOBS ─────────────────────────────────────────────────────────────────────
+jobs:
+
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    # ─── SERVICE CONTAINERS ───────────────────────────────────────────────────
+    # GitHub can spin up real Docker containers alongside your job.
+    # These are called "service containers". They start BEFORE your steps run.
+    # The FHIR app requires MySQL — so we start a MySQL 8 container here.
+    # Your Spring Boot app connects to it via localhost:3306 inside the runner.
+    services:
+      mysql:
+        image: mysql:8.0                          # Same MySQL version as production
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.FHIR_DB_PASSWORD }}  # Root password from secrets
+          MYSQL_DATABASE: fhir_db                 # Creates this database on startup
+        ports:
+          - 3306:3306                             # Expose MySQL on localhost:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+          # health-cmd: runs this command repeatedly to check if MySQL is ready
+          # health-interval: check every 10 seconds
+          # health-retries: retry up to 10 times before declaring failure
+          # GitHub Actions waits for healthy status before starting your steps
+
+    # ─── STEPS ────────────────────────────────────────────────────────────────
+    steps:
+
+      # STEP 1 — Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # STEP 2 — Install Java 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # STEP 3 — Cache Maven dependencies
+      # Uses the FHIR app's pom.xml as the cache key — separate cache from RAG app.
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-fhir-${{ hashFiles('fhir-api-application/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-fhir-
+
+      # STEP 4 — Run the DB init script
+      # Your project has init-scripts/01-init-db.sql which creates tables and seeds data.
+      # The MySQL service container started with an empty 'fhir_db' database.
+      # This step runs your SQL script to set up the schema before Spring Boot starts.
+      - name: Initialize database schema
+        env:
+          MYSQL_PWD: ${{ secrets.FHIR_DB_PASSWORD }}
+        run: |
+          mysql -h 127.0.0.1 -u root fhir_db < fhir-api-application/init-scripts/01-init-db.sql
+          echo "Database schema initialized"
+
+      # STEP 5 — Build and Test
+      # Runs inside fhir-api-application/ folder (where pom.xml lives).
+      # Secrets are injected as environment variables — Spring Boot picks them up
+      # via the ${FHIR_JWT_SECRET}, ${FHIR_DB_PASSWORD} placeholders in application.yaml.
+      # FHIR_DB_HOST is set to 127.0.0.1 because the MySQL service is on localhost in CI.
+      - name: Build and run tests
+        working-directory: fhir-api-application
+        env:
+          FHIR_JWT_SECRET: ${{ secrets.FHIR_JWT_SECRET }}
+          FHIR_DB_PASSWORD: ${{ secrets.FHIR_DB_PASSWORD }}
+          FHIR_DB_HOST: 127.0.0.1
+          FHIR_DB_PORT: 3306
+          FHIR_DB_USERNAME: root
+        run: mvn clean verify -DskipTests
+
+      # STEP 6 — Upload test report (always, even on failure)
+      - name: Upload test report
+        id: upload-test-report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-api-test-report
+          path: fhir-api-application/target/surefire-reports/
+          retention-days: 7
+
+      # STEP 7 — Upload built JAR (only on success)
+      - name: Upload JAR artifact
+        id: upload-jar
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-api-jar
+          path: fhir-api-application/target/*.jar
+          retention-days: 7
+
+      # STEP 8 — Write Job Summary
+      # Writes a formatted summary panel at the bottom of the workflow run page
+      # with clickable download links for the JAR and test report.
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## FHIR API — Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Detail |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MySQL Version | 8.0 (service container) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.upload-jar.outcome }}" == "success" ]; then
+            echo "### JAR File" >> $GITHUB_STEP_SUMMARY
+            echo "[Download FHIR API JAR](${{ steps.upload-jar.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.upload-test-report.outcome }}" == "success" ]; then
+            echo "### Test Report" >> $GITHUB_STEP_SUMMARY
+            echo "[Download Test Report](${{ steps.upload-test-report.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "_Artifacts are retained for 7 days_" >> $GITHUB_STEP_SUMMARY
