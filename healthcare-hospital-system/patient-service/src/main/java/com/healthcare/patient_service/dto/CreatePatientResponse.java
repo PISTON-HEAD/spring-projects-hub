@@ -1,13 +1,13 @@
-package com.healthcare.hospital_booking_system.dto;
+package com.healthcare.patient_service.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record CreatePatientResponse(
-    UUID id,
-    String firstName,
-    String lastName,
-    String email,
-    LocalDateTime createdAt) {
+        UUID id,
+        String firstName,
+        String lastName,
+        String email,
+        LocalDateTime createdAt) {
 
 }

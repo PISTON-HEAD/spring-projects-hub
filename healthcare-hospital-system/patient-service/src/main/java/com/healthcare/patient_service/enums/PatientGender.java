@@ -1,4 +1,4 @@
-package com.healthcare.hospital_booking_system.enums;
+package com.healthcare.patient_service.enums;
 
 public enum PatientGender {
 

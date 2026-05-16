@@ -1,4 +1,4 @@
-package com.healthcare.hospital_booking_system.entity;
+package com.healthcare.patient_service.entity;
 
 import java.util.UUID;
 

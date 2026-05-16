@@ -1,7 +1,8 @@
-package com.healthcare.hospital_booking_system.dto;
+package com.healthcare.patient_service.dto;
 
-import com.healthcare.hospital_booking_system.entity.PatientAddress;
-import com.healthcare.hospital_booking_system.enums.PatientGender;
+import com.healthcare.patient_service.*;
+import com.healthcare.patient_service.entity.PatientAddress;
+import com.healthcare.patient_service.enums.PatientGender;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -9,18 +10,18 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record CreatePatientRequest(
-    @NotBlank String firstName,
+                @NotBlank String firstName,
 
-    String lastName,
+                String lastName,
 
-    @NotNull Integer age,
+                @NotNull Integer age,
 
-    @NotBlank PatientGender gender,
+                @NotBlank PatientGender gender,
 
-    @Email @NotBlank String email,
+                @Email @NotBlank String email,
 
-    String phoneNumber,
+                String phoneNumber,
 
-    @Valid @NotNull PatientAddress address) {
+                @Valid @NotNull PatientAddress address) {
 
 }
