@@ -3,6 +3,8 @@ package com.healthcare.hospital_booking_system.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.healthcare.hospital_booking_system.enums.PatientGender;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -42,7 +44,7 @@ public class Patient {
  private Integer age;
 
  @Column(nullable = false)
- private String gender;
+ private PatientGender gender;
 
  @Column(nullable = false, unique = true)
  private String email;
