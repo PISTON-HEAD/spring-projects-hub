@@ -1,9 +1,9 @@
-package com.healthcare.hospital_booking_system.entity;
+package com.healthcare.patient_service.entity;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.healthcare.hospital_booking_system.enums.PatientGender;
+import com.healthcare.patient_service.enums.PatientGender;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
