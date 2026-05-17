@@ -2,8 +2,6 @@ package com.healthcare.patient_service.entity;
 
 import java.util.UUID;
 
-import com.google.auto.value.AutoValue.Builder;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,6 +11,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,6 +21,7 @@ import lombok.Setter;
 @Setter
 @Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity(name = "PatientAddress")
 public class PatientAddress {
 
