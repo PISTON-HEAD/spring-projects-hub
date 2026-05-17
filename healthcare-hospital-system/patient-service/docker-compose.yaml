@@ -1,0 +1,26 @@
+services:
+  patient-service:
+    build: .
+    container_name: patient-service
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fhir_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - patient-database-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8181/actuator/health || exit 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+networks:
+  patient-database-network:
+    driver: bridge
+
+

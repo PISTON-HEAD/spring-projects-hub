@@ -17,7 +17,7 @@
     <!-- Project Information -->
     <groupId>com.healthcare</groupId>
     <artifactId>patient-service</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <name>patient-service</name>
     <description>Spring Boot application for storing patient information</description>
@@ -49,18 +49,21 @@
             <artifactId>spring-boot-starter-graphql</artifactId>
         </dependency>
 
-        <!-- Spring Security -->
+        <!-- Spring Security
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-        <!-- Spring AI - Google Gemini -->
+         -->
+
+        <!-- Spring AI - Google Gemini 
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-google-genai</artifactId>
             <version>${spring-ai.version}</version>
         </dependency>
+        -->
 
         <!-- Retry Support -->
         <dependency>
@@ -100,13 +103,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- DevTools -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
 
         <!-- Testing -->
         <dependency>
@@ -116,19 +112,6 @@
         </dependency>
 
     </dependencies>
-
-    <!-- Spring Repository -->
-    <repositories>
-        <repository>
-            <id>spring-milestones</id>
-            <name>Spring Milestones</name>
-            <url>https://repo.spring.io/milestone</url>
-
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
     <!-- Build -->
     <build>
@@ -166,8 +149,6 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-
         </plugins>
     </build>
-
 </project>

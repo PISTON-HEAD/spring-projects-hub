@@ -8,8 +8,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5432/patient_db
-    username: postgres
-    password: postgres
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -18,3 +18,21 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,heapdump
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: patient-service
+    description: Manages patient profile data for healthcare appointment system
+    version: 1.0.0

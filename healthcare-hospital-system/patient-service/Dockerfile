@@ -4,6 +4,13 @@ WORKDIR /workspace
 COPY pom.xml pom.xml
 RUN mvn -B dependency:go-offline
 COPY src ./src
-RUN mvn -B clean package:DskipTests
+RUN mvn -B clean package -DskipTests
+
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /workspace/target/*.jar app.jar
+EXPOSE 8181
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
 
 
