@@ -10,18 +10,18 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record CreatePatientRequest(
-                @NotBlank String firstName,
+  @NotBlank String firstName,
 
-                String lastName,
+  String lastName,
 
-                @NotNull Integer age,
+  @NotNull Integer age,
 
-                @NotBlank PatientGender gender,
+  @NotBlank PatientGender gender,
 
-                @Email @NotBlank String email,
+  @Email @NotBlank String email,
 
-                String phoneNumber,
+  String phoneNumber,
 
-                @Valid @NotNull PatientAddress address) {
+  @Valid @NotNull PatientAddress address) {
 
 }
