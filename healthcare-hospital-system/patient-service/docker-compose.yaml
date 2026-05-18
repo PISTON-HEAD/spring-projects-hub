@@ -18,9 +18,31 @@ services:
       timeout: 30s
       retries: 5
       start_period: 30s
-
+  
+  mysql:
+    image: mysql:8.0
+    container_name: patient-database
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: patient_db
+      MYSQL_USER: patient_user
+      MYSQL_PASSWORD: patient_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - patient-database-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 30s
+      retries: 5
+    
 networks:
   patient-database-network:
     driver: bridge
 
-
+volumes:
+  mysql-data:
+    driver: local
