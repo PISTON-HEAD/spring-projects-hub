@@ -7,6 +7,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fhir_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
+    ports:
+    - "8481:8481"
     depends_on:
       mysql:
         condition: service_healthy
