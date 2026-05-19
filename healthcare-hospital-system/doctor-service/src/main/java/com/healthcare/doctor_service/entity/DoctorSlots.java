@@ -50,8 +50,4 @@ public class DoctorSlots {
  @Column(nullable = false)
  private SlotStatus status;
 
- private UUID reservedByAppointmentId;
-
- @Column(nullable = false)
- private LocalDateTime createdAt;
 }
