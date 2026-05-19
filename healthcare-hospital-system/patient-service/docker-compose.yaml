@@ -30,7 +30,7 @@ services:
       MYSQL_USER: patient_user
       MYSQL_PASSWORD: patient_pass
     ports:
-      - "3306:3306"
+      - "3309:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./init-scripts:/docker-entrypoint-initdb.d
