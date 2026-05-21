@@ -1,4 +1,4 @@
-package com.healthcare.doctor_service.DTO;
+package com.healthcare.doctor_service.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
