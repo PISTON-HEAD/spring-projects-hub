@@ -1,0 +1,36 @@
+server:
+  port: 8490
+
+spring:
+  application:
+    name: doctor-service
+  datasource:                   # ← sibling of application, not child
+    url: jdbc:mysql://localhost:3306/doctor_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: doctor_user
+    password: doctor_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:                          # ← sibling of application, not child
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: doctor-service
+    description: Manages doctor profile data for healthcare appointment system
+    version: 1.0.0

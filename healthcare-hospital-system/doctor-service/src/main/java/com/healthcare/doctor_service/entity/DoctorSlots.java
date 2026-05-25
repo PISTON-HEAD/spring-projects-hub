@@ -3,7 +3,6 @@ package com.healthcare.doctor_service.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.google.auto.value.AutoValue.Builder;
 import com.healthcare.doctor_service.enums.SlotStatus;
 
 import jakarta.persistence.Column;
@@ -22,6 +21,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Builder;
 
 @Entity
 @AllArgsConstructor

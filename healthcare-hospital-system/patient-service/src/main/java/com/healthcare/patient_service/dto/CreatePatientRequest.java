@@ -16,7 +16,7 @@ public record CreatePatientRequest(
 
   @NotNull Integer age,
 
-  @NotBlank PatientGender gender,
+  @NotNull PatientGender gender,
 
   @Email @NotBlank String email,
 

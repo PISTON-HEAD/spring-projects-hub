@@ -24,8 +24,7 @@ public class PatientService {
  @Transactional
  public Object createPatient(CreatePatientRequest request) {
   if (patientRepository.existsByEmail(request.email())) {
-   return new RuntimeException("Email already Exists");
-  }
+   throw new IllegalArgumentException("Email already exists");
 
   Patient savePatient = Patient.builder().address(request.address()).age(request.age()).email(request.email())
     .firstName(request.firstName()).lastName(request.lastName()).phoneNumber(request.phoneNumber())
