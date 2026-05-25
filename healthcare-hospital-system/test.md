@@ -50,3 +50,21 @@ MockMvc mockMvc                       ← simulate HTTP requests
 ---
 
 Which do you want to start with — **PatientServiceTest** or **DoctorServiceTest**?
+
+---
+
+## 🏗️ Test Folder Structure
+
+```
+patient-service/src/test/java/com/healthcare/patient_service/
+├── service/
+│   └── PatientServiceTest.java       ← pure Mockito, no Spring
+└── controller/
+    └── PatientControllerTest.java    ← MockMvc, web layer only
+
+doctor-service/src/test/java/com/healthcare/doctor_service/
+├── service/
+│   └── DoctorServiceTest.java        ← pure Mockito, no Spring
+└── controller/
+    └── DoctorControllerTest.java     ← MockMvc (after controller is built)
+```
