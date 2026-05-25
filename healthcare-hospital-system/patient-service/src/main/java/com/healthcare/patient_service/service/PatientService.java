@@ -19,73 +19,74 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class PatientService {
 
- private final PatientRepository patientRepository;
+  private final PatientRepository patientRepository;
 
- @Transactional
- public Object createPatient(CreatePatientRequest request) {
-  if (patientRepository.existsByEmail(request.email())) {
-   return new RuntimeException("Email already Exists");
+  @Transactional
+  public Object createPatient(CreatePatientRequest request) {
+    if (patientRepository.existsByEmail(request.email())) {
+      throw new IllegalArgumentException("Email already exists");
+    }
+
+    Patient savePatient = Patient.builder().address(request.address()).age(request.age()).email(request.email())
+        .firstName(request.firstName()).lastName(request.lastName()).phoneNumber(request.phoneNumber())
+        .gender(request.gender()).build();
+
+    Patient savedPatient = patientRepository.save(savePatient);
+    CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(),
+        savedPatient.getFirstName(),
+        savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
+    return patientResponse;
   }
 
-  Patient savePatient = Patient.builder().address(request.address()).age(request.age()).email(request.email())
-    .firstName(request.firstName()).lastName(request.lastName()).phoneNumber(request.phoneNumber())
-    .gender(request.gender()).build();
-
-  Patient savedPatient = patientRepository.save(savePatient);
-  CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(), savedPatient.getFirstName(),
-    savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
-  return patientResponse;
- }
-
- @Transactional
- public CreatePatientResponse getPatientById(UUID patientId) {
-  Patient savedPatient = patientRepository.findById(patientId)
-    .orElseThrow(() -> new PatientNotFoundException("Patient not found with id: " + patientId));
-  CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(), savedPatient.getFirstName(),
-    savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
-  return patientResponse;
- }
-
- @Transactional
- public boolean existsById(UUID patientId) {
-  return patientRepository.existsById(patientId);
- }
-
- @Transactional
- public CreatePatientResponse updatePatient(UUID patientId, UpdatePatient request) {
-  Patient patient = patientRepository.findById(patientId)
-    .orElseThrow(() -> new PatientNotFoundException("Patient not found with id: " + patientId));
-
-  if (request.firstName() != null) {
-   patient.setFirstName(request.firstName());
+  @Transactional
+  public CreatePatientResponse getPatientById(UUID patientId) {
+    Patient savedPatient = patientRepository.findById(patientId)
+        .orElseThrow(() -> new PatientNotFoundException("Patient not found with id: " + patientId));
+    CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(), savedPatient.getFirstName(),
+        savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
+    return patientResponse;
   }
 
-  if (request.lastName() != null) {
-   patient.setLastName(request.lastName());
+  @Transactional
+  public boolean existsById(UUID patientId) {
+    return patientRepository.existsById(patientId);
   }
 
-  if (request.age() != null) {
-   patient.setAge(request.age());
-  }
+  @Transactional
+  public CreatePatientResponse updatePatient(UUID patientId, UpdatePatient request) {
+    Patient patient = patientRepository.findById(patientId)
+        .orElseThrow(() -> new PatientNotFoundException("Patient not found with id: " + patientId));
 
-  if (request.gender() != null) {
-   patient.setGender(request.gender());
-  }
+    if (request.firstName() != null) {
+      patient.setFirstName(request.firstName());
+    }
 
-  if (request.phoneNumber() != null) {
-   patient.setPhoneNumber(request.phoneNumber());
-  }
+    if (request.lastName() != null) {
+      patient.setLastName(request.lastName());
+    }
 
-  if (request.address() != null) {
-   PatientAddress address = patient.getAddress();
-   address.setCountry(request.address().getCountry());
-   address.setState(request.address().getState());
-   address.setHouseName(request.address().getHouseName());
-  }
+    if (request.age() != null) {
+      patient.setAge(request.age());
+    }
 
-  Patient savedPatient = patientRepository.saveAndFlush(patient);
-  CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(), savedPatient.getFirstName(),
-    savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
-  return patientResponse;
- }
+    if (request.gender() != null) {
+      patient.setGender(request.gender());
+    }
+
+    if (request.phoneNumber() != null) {
+      patient.setPhoneNumber(request.phoneNumber());
+    }
+
+    if (request.address() != null) {
+      PatientAddress address = patient.getAddress();
+      address.setCountry(request.address().getCountry());
+      address.setState(request.address().getState());
+      address.setHouseName(request.address().getHouseName());
+    }
+
+    Patient savedPatient = patientRepository.saveAndFlush(patient);
+    CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(), savedPatient.getFirstName(),
+        savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
+    return patientResponse;
+  }
 }
