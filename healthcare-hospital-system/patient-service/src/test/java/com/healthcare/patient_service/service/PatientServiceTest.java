@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -59,5 +61,32 @@ public class PatientServiceTest {
 
         verify(patientRepository).existsByEmail(request.email());
         verify(patientRepository).save(any(Patient.class));
+    }
+
+    @Test
+    void getPatientByIdTest(){
+        UUID id = UUID.randomUUID();
+        PatientAddress address = new PatientAddress();
+        Optional<Patient> samePatient =  Optional.of(Patient.builder().id(id).address(address).age(25).createdAt(LocalDateTime.now()).email("dragon@gmail.com").gender(PatientGender.MALE).lastName("dragon").firstName("Mighty").build());
+        when(patientRepository.findById(id)).thenReturn(samePatient);
+        CreatePatientResponse savedPatient = patientService.getPatientById(id);
+        Assertions.assertEquals(samePatient.get().getEmail(), savedPatient.email());
+        Assertions.assertEquals(samePatient.get().getId(), savedPatient.id());
+        Assertions.assertEquals(samePatient.get().getFirstName(), savedPatient.firstName());
+        Assertions.assertEquals(samePatient.get().getLastName(), savedPatient.lastName());
+    
+        verify(patientRepository).findById(id);
+    }
+
+    @Test
+    void existsByIdTest()
+    {
+        UUID id = UUID.randomUUID();
+        when(patientRepository.existsById(id)).thenReturn(true);
+
+        Boolean isPatientThere = patientService.existsById(id);
+        
+        Assertions.assertEquals(true,isPatientThere);
+        verify(patientRepository).existsById(id);
     }
 }
