@@ -65,3 +65,8 @@ yarn.lock
 *.ear
 *.zip
 *.tar.gz
+
+# Accidentally added JDK directories
+oracleJdk*/
+*.jdk/
+
