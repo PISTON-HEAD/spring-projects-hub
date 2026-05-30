@@ -54,8 +54,8 @@ public class PatientControllerTest {
         when(service.createPatient(any(CreatePatientRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/patients")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper.writeValueAsString(request)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.email").value("rahul@example.com"))
             .andExpect(jsonPath("$.firstName").value("Rahul"));

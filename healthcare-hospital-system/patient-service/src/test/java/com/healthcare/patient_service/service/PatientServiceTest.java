@@ -1,5 +1,6 @@
 package com.healthcare.patient_service.service;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -9,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +23,7 @@ import com.healthcare.patient_service.dto.UpdatePatient;
 import com.healthcare.patient_service.entity.Patient;
 import com.healthcare.patient_service.entity.PatientAddress;
 import com.healthcare.patient_service.enums.PatientGender;
+import com.healthcare.patient_service.exception.PatientNotFoundException;
 import com.healthcare.patient_service.repository.PatientRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,9 +35,18 @@ public class PatientServiceTest {
     @InjectMocks
     private PatientService patientService;
 
+    private PatientAddress address;
+
+    @BeforeEach
+    void init() {
+        address = new PatientAddress();
+        address.setCountry("India");
+        address.setState("Kerala");
+    }
+
+
     @Test
     void createPatientTest() {
-        PatientAddress address = new PatientAddress();
         CreatePatientRequest request = new CreatePatientRequest(
             "Rahul", "Sharma", 30, PatientGender.MALE,
             "rahul@example.com", "9999999999", address
@@ -67,7 +79,6 @@ public class PatientServiceTest {
     @Test
     void getPatientByIdTest(){
         UUID id = UUID.randomUUID();
-        PatientAddress address = new PatientAddress();
         Optional<Patient> samePatient =  Optional.of(Patient.builder().id(id).address(address).age(25).createdAt(LocalDateTime.now()).email("dragon@gmail.com").gender(PatientGender.MALE).lastName("dragon").firstName("Mighty").build());
         when(patientRepository.findById(id)).thenReturn(samePatient);
         CreatePatientResponse savedPatient = patientService.getPatientById(id);
@@ -95,7 +106,6 @@ public class PatientServiceTest {
     void updatePatientTest()
     {
         UUID id = UUID.randomUUID();
-        PatientAddress address = new PatientAddress();
         Optional<Patient> existingPatient = Optional.of(Patient.builder()
         .id(id)
         .firstName("Mighty")
@@ -131,5 +141,30 @@ public class PatientServiceTest {
         verify(patientRepository).findById(id);
         verify(patientRepository).saveAndFlush(any(Patient.class));
 
+    }
+
+    @Test
+    void PatientNotFoundExceptionTest()
+    {
+        UUID id = UUID.randomUUID();
+        when(patientRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(PatientNotFoundException.class,() -> patientService.getPatientById(id));
+
+        verify(patientRepository).findById(id);
+    }
+
+    @Test
+    void createPatientExceptionTest()
+    {
+        CreatePatientRequest request = new CreatePatientRequest(
+            "Rahul", "Sharma", 30, PatientGender.MALE,
+            "rahul@example.com", "9999999999", address
+        );
+        when(patientRepository.existsByEmail(request.email())).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, ()-> patientService.createPatient(request));
+
+        verify(patientRepository).existsByEmail(request.email());
     }
 }
