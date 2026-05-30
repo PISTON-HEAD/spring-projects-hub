@@ -60,5 +60,11 @@ public class PatientControllerTest {
 
         verify(service).createPatient(any(CreatePatientRequest.class));
     }
+
+    @Test
+    void getPatientByIdTest()
+    {
+        
+    }
     
 }
