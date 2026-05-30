@@ -1,5 +1,6 @@
 package com.healthcare.doctor_service.service;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,11 +32,11 @@ public class DoctorServiceTest {
     void createDoctorTest()
     {
         UUID id = UUID.randomUUID();
-        CreateDoctorRequest request = new CreateDoctorRequest("Crack", "Bot", "Alchoholist", "crackeez@gmail.com ", "123-456-890");
+        CreateDoctorRequest request = new CreateDoctorRequest("Crack", "Bot", "Alchoholist", "crackeez@gmail.com", "123-456-890");
         Doctor dc = Doctor.builder().active(true).createdAt(LocalDateTime.now()).email(request.email()).firstName(request.firstName()).id(id).lastName(request.lastName()).specialization(request.specialization()).build();
 
         when(repository.existsByEmail(dc.getEmail())).thenReturn(false);
-        when(repository.save(dc)).thenReturn(dc);
+        when(repository.save(any(Doctor.class))).thenReturn(dc);
 
         DoctorResponse dr = service.createDoctor(request);
 
@@ -44,6 +45,6 @@ public class DoctorServiceTest {
         Assertions.assertEquals(request.lastName(), dr.lastName());
 
         verify(repository).existsByEmail(dc.getEmail());
-        verify(repository.save(dc));
+        verify(repository).save(any(Doctor.class));
     }
 }
