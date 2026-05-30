@@ -1,5 +1,6 @@
 package com.healthcare.doctor_service.service;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.healthcare.doctor_service.dto.CreateDoctorRequest;
 import com.healthcare.doctor_service.dto.DoctorResponse;
 import com.healthcare.doctor_service.entity.Doctor;
+import com.healthcare.doctor_service.exception.DoctorNotFoundException;
 import com.healthcare.doctor_service.repository.DoctorRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,6 +85,17 @@ public class DoctorServiceTest {
     }
 
     @Test
+    void getDoctorById_ThrowsException()
+    {
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(DoctorNotFoundException.class, () -> service.getDoctorById(id));
+        
+        verify(repository).findById(id);
+    }
+
+    @Test
     void testProvateMethodDoctorReponse() throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException
     {
         Method tDoctorResponse = DoctorService.class.getDeclaredMethod("tDoctorResponse", Doctor.class);
@@ -92,7 +105,6 @@ public class DoctorServiceTest {
         
         Assertions.assertEquals("crackeez@gmail.com", result.email());
         Assertions.assertEquals("Crack", result.firstName());
-
 
     }
 }
