@@ -105,10 +105,10 @@ public class DoctorService {
    throw new IllegalArgumentException("Slot is not available for reservation");
   }
  slot.setStatus(SlotStatus.RESERVED);
-slot.setReservedByAppointmentId(appointmentId);
-doctorSlotsRepository.save(slot);
-return tDoctorSlotResponse(slot);
- }
+  slot.setReservedByAppointmentId(appointmentId);
+  doctorSlotsRepository.save(slot);
+  return tDoctorSlotResponse(slot);
+}
 
  public DoctorSlotResponse confirmSlot(UUID slotId)
  {
