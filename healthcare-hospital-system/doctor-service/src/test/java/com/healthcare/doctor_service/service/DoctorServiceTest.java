@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,16 +21,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.healthcare.doctor_service.dto.CreateDoctorRequest;
+import com.healthcare.doctor_service.dto.CreateDoctorSlotRequest;
 import com.healthcare.doctor_service.dto.DoctorResponse;
+import com.healthcare.doctor_service.dto.DoctorSlotResponse;
 import com.healthcare.doctor_service.entity.Doctor;
+import com.healthcare.doctor_service.entity.DoctorSlots;
 import com.healthcare.doctor_service.exception.DoctorNotFoundException;
 import com.healthcare.doctor_service.repository.DoctorRepository;
+import com.healthcare.doctor_service.repository.DoctorSlotRepository;
 
 @ExtendWith(MockitoExtension.class)
 public class DoctorServiceTest {
 
     @Mock
     DoctorRepository repository;
+
+    @Mock
+    DoctorSlotRepository slotRepository;
 
     @InjectMocks
     DoctorService service;
@@ -96,7 +104,7 @@ public class DoctorServiceTest {
     }
 
     @Test
-    void testProvateMethodDoctorReponse() throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException
+    void testPrivateMethodDoctorReponse() throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException
     {
         Method tDoctorResponse = DoctorService.class.getDeclaredMethod("tDoctorResponse", Doctor.class);
         tDoctorResponse.setAccessible(true);
@@ -105,6 +113,72 @@ public class DoctorServiceTest {
         
         Assertions.assertEquals("crackeez@gmail.com", result.email());
         Assertions.assertEquals("Crack", result.firstName());
+
+    }
+
+    @Test
+    void createDoctorSlotTest()
+    {
+        UUID id = UUID.randomUUID();
+        LocalDateTime timeNow = LocalDateTime.of(1999, 12, 15, 12, 50, 10);
+        LocalDateTime endTime = LocalDateTime.of(2000, 12, 23, 22, 10, 45);
+        CreateDoctorSlotRequest request = new CreateDoctorSlotRequest(id, timeNow,endTime);
+
+        DoctorSlots slot = DoctorSlots.builder().doctor(doctor).createdAt(timeNow).endTime(endTime).build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(doctor));        
+        when(slotRepository.save(any(DoctorSlots.class))).thenReturn(slot);
+
+        DoctorSlotResponse response = service.createDoctorSlot(id, request);
+
+        Assertions.assertEquals(response.firstName(), doctor.getFirstName());
+        Assertions.assertEquals(response.endTime(), request.endTime());
+
+
+        verify(slotRepository).save(any(DoctorSlots.class));
+        verify(repository).findById(id);
+    }
+
+    @Test
+    void getSlotsByDoctorTest()
+    {
+        UUID id = UUID.randomUUID();
+
+        DoctorSlots slot1 = DoctorSlots.builder()
+            .id(UUID.randomUUID())
+            .doctor(doctor)
+            .startTime(LocalDateTime.of(2025, 1, 10, 9, 0))
+            .endTime(LocalDateTime.of(2025, 1, 10, 10, 0))
+            .build();
+
+        DoctorSlots slot2 = DoctorSlots.builder()
+            .id(UUID.randomUUID())
+            .doctor(doctor)
+            .startTime(LocalDateTime.of(2025, 1, 10, 11, 0))
+            .endTime(LocalDateTime.of(2025, 1, 10, 12, 0))
+            .build();
+
+        DoctorSlots slot3 = DoctorSlots.builder()
+            .id(UUID.randomUUID())
+            .doctor(doctor)
+            .startTime(LocalDateTime.of(2025, 1, 10, 14, 0))
+            .endTime(LocalDateTime.of(2025, 1, 10, 15, 0))
+            .build();
+
+        when(slotRepository.findByDoctorId(id)).thenReturn(List.of(slot1, slot2, slot3));
+
+        List<DoctorSlotResponse> slots = service.getSlotsByDoctor(id);
+
+        Assertions.assertEquals(3, slots.size());
+        Assertions.assertEquals(slot1.getStartTime(), slots.get(0).startTime());
+        Assertions.assertEquals(slot2.getStartTime(), slots.get(1).startTime());
+
+        verify(slotRepository).findByDoctorId(id);
+    }
+
+    @Test
+    void getAvailableSlotsTest()
+    {
 
     }
 }
