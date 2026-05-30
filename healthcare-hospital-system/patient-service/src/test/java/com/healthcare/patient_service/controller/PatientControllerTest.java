@@ -95,5 +95,18 @@ public class PatientControllerTest {
 
         verify(service).getPatientById(uuid);
     }
+
+    @Test
+    void existsByIdTest() throws Exception
+    {
+        UUID id = UUID.randomUUID();
+        when(service.existsById(id)).thenReturn(true);
+
+        mockMvc.perform(get("/api/patients/" + id + "/exists"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.exists").value(true));
+
+        verify(service).existsById(id);
+    }
     
 }
