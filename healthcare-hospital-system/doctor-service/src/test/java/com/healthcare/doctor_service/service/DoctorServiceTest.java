@@ -4,10 +4,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +32,23 @@ public class DoctorServiceTest {
     @InjectMocks
     DoctorService service;
 
+    private Doctor doctor;
+
+    @BeforeEach
+    public void init_beforeEaach()
+    {
+        doctor = Doctor.builder()
+        .id(UUID.randomUUID())
+        .firstName("Crack")
+        .lastName("Bot")
+        .email("crackeez@gmail.com")
+        .specialization("Cardiologist")
+        .phoneNumber("123-456-890")
+        .active(true)
+        .createdAt(LocalDateTime.now())
+        .build();
+    }
+
     @Test
     void createDoctorTest()
     {
@@ -46,5 +67,32 @@ public class DoctorServiceTest {
 
         verify(repository).existsByEmail(dc.getEmail());
         verify(repository).save(any(Doctor.class));
+    }
+
+    @Test
+    void getDoctorByIdTest()
+    {
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.of(doctor));
+
+        DoctorResponse response = service.getDoctorById(id);
+
+        Assertions.assertEquals(doctor.getFirstName(), response.firstName());
+        Assertions.assertEquals(doctor.getLastName(), response.lastName());
+        Assertions.assertEquals(doctor.getSpecialization(), response.specialization());
+    }
+
+    @Test
+    void testProvateMethodDoctorReponse() throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException
+    {
+        Method tDoctorResponse = DoctorService.class.getDeclaredMethod("tDoctorResponse", Doctor.class);
+        tDoctorResponse.setAccessible(true);
+
+        DoctorResponse result = (DoctorResponse) tDoctorResponse.invoke(service, doctor);
+        
+        Assertions.assertEquals("crackeez@gmail.com", result.email());
+        Assertions.assertEquals("Crack", result.firstName());
+
+
     }
 }

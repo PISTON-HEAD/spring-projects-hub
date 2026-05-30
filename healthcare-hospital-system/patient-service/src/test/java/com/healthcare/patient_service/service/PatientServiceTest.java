@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,9 +33,18 @@ public class PatientServiceTest {
     @InjectMocks
     private PatientService patientService;
 
+    private PatientAddress address;
+
+    @BeforeEach
+    void init() {
+        address = new PatientAddress();
+        address.setCountry("India");
+        address.setState("Kerala");
+    }
+
+
     @Test
     void createPatientTest() {
-        PatientAddress address = new PatientAddress();
         CreatePatientRequest request = new CreatePatientRequest(
             "Rahul", "Sharma", 30, PatientGender.MALE,
             "rahul@example.com", "9999999999", address
@@ -67,7 +77,6 @@ public class PatientServiceTest {
     @Test
     void getPatientByIdTest(){
         UUID id = UUID.randomUUID();
-        PatientAddress address = new PatientAddress();
         Optional<Patient> samePatient =  Optional.of(Patient.builder().id(id).address(address).age(25).createdAt(LocalDateTime.now()).email("dragon@gmail.com").gender(PatientGender.MALE).lastName("dragon").firstName("Mighty").build());
         when(patientRepository.findById(id)).thenReturn(samePatient);
         CreatePatientResponse savedPatient = patientService.getPatientById(id);
@@ -95,7 +104,6 @@ public class PatientServiceTest {
     void updatePatientTest()
     {
         UUID id = UUID.randomUUID();
-        PatientAddress address = new PatientAddress();
         Optional<Patient> existingPatient = Optional.of(Patient.builder()
         .id(id)
         .firstName("Mighty")
