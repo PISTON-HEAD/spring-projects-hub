@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.healthcare.patient_service.dto.CreatePatientRequest;
 import com.healthcare.patient_service.dto.CreatePatientResponse;
+import com.healthcare.patient_service.dto.UpdatePatient;
 import com.healthcare.patient_service.entity.Patient;
 import com.healthcare.patient_service.entity.PatientAddress;
 import com.healthcare.patient_service.enums.PatientGender;
@@ -88,5 +89,47 @@ public class PatientServiceTest {
         
         Assertions.assertEquals(true,isPatientThere);
         verify(patientRepository).existsById(id);
+    }
+
+    @Test
+    void updatePatientTest()
+    {
+        UUID id = UUID.randomUUID();
+        PatientAddress address = new PatientAddress();
+        Optional<Patient> existingPatient = Optional.of(Patient.builder()
+        .id(id)
+        .firstName("Mighty")
+        .lastName("dragon")
+        .age(25)
+        .email("dragon@gmail.com")
+        .gender(PatientGender.MALE)
+        .address(address)
+        .createdAt(LocalDateTime.now())
+        .build());
+
+        when(patientRepository.findById(id)).thenReturn(existingPatient);
+        
+        UpdatePatient updatePatient = new UpdatePatient("UpdatedName", null, 33, null, null, null, null);
+        Patient updatedPatient = Patient.builder()
+        .id(id)
+        .firstName("UpdatedName")  // updated
+        .lastName("dragon")        // unchanged
+        .age(33)                   // updated
+        .email("dragon@gmail.com") // unchanged
+        .gender(PatientGender.MALE)
+        .address(address)
+        .createdAt(existingPatient.get().getCreatedAt())
+        .build();
+
+        when(patientRepository.findById(id)).thenReturn(existingPatient);
+        when(patientRepository.saveAndFlush(any(Patient.class))).thenReturn(updatedPatient);
+
+        CreatePatientResponse response = patientService.updatePatient(id, updatePatient);
+
+        Assertions.assertEquals(updatedPatient.getFirstName(), response.firstName());
+        Assertions.assertEquals(updatedPatient.getLastName() , response.lastName());
+        verify(patientRepository).findById(id);
+        verify(patientRepository).saveAndFlush(any(Patient.class));
+
     }
 }
