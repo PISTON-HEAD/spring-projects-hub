@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -20,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healthcare.patient_service.dto.CreatePatientRequest;
 import com.healthcare.patient_service.dto.CreatePatientResponse;
+import com.healthcare.patient_service.entity.Patient;
 import com.healthcare.patient_service.entity.PatientAddress;
 import com.healthcare.patient_service.enums.PatientGender;
 import com.healthcare.patient_service.service.PatientService;
@@ -34,7 +36,7 @@ public class PatientControllerTest {
     //usin just mock will leave the patient service as null as we are using a mini spring context with help of WebMVCTest
     PatientService service;
 
-    @Autowired // ocnverts ur request (obj) to JSON
+    @Autowired // converts ur request (obj) to JSON
     ObjectMapper mapper;
 
     @Test
@@ -59,6 +61,51 @@ public class PatientControllerTest {
             .andExpect(jsonPath("$.firstName").value("Rahul"));
 
         verify(service).createPatient(any(CreatePatientRequest.class));
+    }
+
+    @Test
+    void getPatientByIdTest() throws Exception
+    {
+        UUID uuid = UUID.randomUUID();
+        PatientAddress address = new PatientAddress();
+        address.setCountry("India");
+        address.setState("Kerala");
+        
+        Patient request = Patient.builder()
+        .id(uuid)
+        .address(address)
+        .age(30)
+        .email("crackeez@example.com")
+        .firstName("Crack")
+        .lastName("Bot")
+        .phoneNumber("9999999999")
+        .gender(PatientGender.MALE)
+        .build();
+
+        CreatePatientResponse response = new CreatePatientResponse(uuid, request.getFirstName(), request.getLastName(), request.getEmail(), LocalDateTime.now());
+        
+        
+        when(service.getPatientById(uuid)).thenReturn(response);
+
+        mockMvc.perform(get("/api/patients/" + uuid))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.email").value("crackeez@example.com"))
+        .andExpect(jsonPath("$.firstName").value("Crack"));
+
+        verify(service).getPatientById(uuid);
+    }
+
+    @Test
+    void existsByIdTest() throws Exception
+    {
+        UUID id = UUID.randomUUID();
+        when(service.existsById(id)).thenReturn(true);
+
+        mockMvc.perform(get("/api/patients/" + id + "/exists"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.exists").value(true));
+
+        verify(service).existsById(id);
     }
     
 }
