@@ -26,6 +26,7 @@ import com.healthcare.doctor_service.dto.DoctorResponse;
 import com.healthcare.doctor_service.dto.DoctorSlotResponse;
 import com.healthcare.doctor_service.entity.Doctor;
 import com.healthcare.doctor_service.entity.DoctorSlots;
+import com.healthcare.doctor_service.enums.SlotStatus;
 import com.healthcare.doctor_service.exception.DoctorNotFoundException;
 import com.healthcare.doctor_service.repository.DoctorRepository;
 import com.healthcare.doctor_service.repository.DoctorSlotRepository;
@@ -45,33 +46,34 @@ public class DoctorServiceTest {
     private Doctor doctor;
 
     @BeforeEach
-    public void init_beforeEaach()
-    {
+    public void init_beforeEaach() {
         doctor = Doctor.builder()
-        .id(UUID.randomUUID())
-        .firstName("Crack")
-        .lastName("Bot")
-        .email("crackeez@gmail.com")
-        .specialization("Cardiologist")
-        .phoneNumber("123-456-890")
-        .active(true)
-        .createdAt(LocalDateTime.now())
-        .build();
+                .id(UUID.randomUUID())
+                .firstName("Crack")
+                .lastName("Bot")
+                .email("crackeez@gmail.com")
+                .specialization("Cardiologist")
+                .phoneNumber("123-456-890")
+                .active(true)
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     @Test
-    void createDoctorTest()
-    {
+    void createDoctorTest() {
         UUID id = UUID.randomUUID();
-        CreateDoctorRequest request = new CreateDoctorRequest("Crack", "Bot", "Alchoholist", "crackeez@gmail.com", "123-456-890");
-        Doctor dc = Doctor.builder().active(true).createdAt(LocalDateTime.now()).email(request.email()).firstName(request.firstName()).id(id).lastName(request.lastName()).specialization(request.specialization()).build();
+        CreateDoctorRequest request = new CreateDoctorRequest("Crack", "Bot", "Alchoholist", "crackeez@gmail.com",
+                "123-456-890");
+        Doctor dc = Doctor.builder().active(true).createdAt(LocalDateTime.now()).email(request.email())
+                .firstName(request.firstName()).id(id).lastName(request.lastName())
+                .specialization(request.specialization()).build();
 
         when(repository.existsByEmail(dc.getEmail())).thenReturn(false);
         when(repository.save(any(Doctor.class))).thenReturn(dc);
 
         DoctorResponse dr = service.createDoctor(request);
 
-        Assertions.assertEquals(request.email(),dr.email());
+        Assertions.assertEquals(request.email(), dr.email());
         Assertions.assertEquals(request.firstName(), dr.firstName());
         Assertions.assertEquals(request.lastName(), dr.lastName());
 
@@ -80,8 +82,7 @@ public class DoctorServiceTest {
     }
 
     @Test
-    void getDoctorByIdTest()
-    {
+    void getDoctorByIdTest() {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.of(doctor));
 
@@ -93,40 +94,38 @@ public class DoctorServiceTest {
     }
 
     @Test
-    void getDoctorById_ThrowsException()
-    {
+    void getDoctorById_ThrowsException() {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(DoctorNotFoundException.class, () -> service.getDoctorById(id));
-        
+
         verify(repository).findById(id);
     }
 
     @Test
-    void testPrivateMethodDoctorReponse() throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException
-    {
+    void testPrivateMethodDoctorReponse()
+            throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException {
         Method tDoctorResponse = DoctorService.class.getDeclaredMethod("tDoctorResponse", Doctor.class);
         tDoctorResponse.setAccessible(true);
 
         DoctorResponse result = (DoctorResponse) tDoctorResponse.invoke(service, doctor);
-        
+
         Assertions.assertEquals("crackeez@gmail.com", result.email());
         Assertions.assertEquals("Crack", result.firstName());
 
     }
 
     @Test
-    void createDoctorSlotTest()
-    {
+    void createDoctorSlotTest() {
         UUID id = UUID.randomUUID();
         LocalDateTime timeNow = LocalDateTime.of(1999, 12, 15, 12, 50, 10);
         LocalDateTime endTime = LocalDateTime.of(2000, 12, 23, 22, 10, 45);
-        CreateDoctorSlotRequest request = new CreateDoctorSlotRequest(id, timeNow,endTime);
+        CreateDoctorSlotRequest request = new CreateDoctorSlotRequest(id, timeNow, endTime);
 
         DoctorSlots slot = DoctorSlots.builder().doctor(doctor).createdAt(timeNow).endTime(endTime).build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(doctor));        
+        when(repository.findById(id)).thenReturn(Optional.of(doctor));
         when(slotRepository.save(any(DoctorSlots.class))).thenReturn(slot);
 
         DoctorSlotResponse response = service.createDoctorSlot(id, request);
@@ -134,36 +133,34 @@ public class DoctorServiceTest {
         Assertions.assertEquals(response.firstName(), doctor.getFirstName());
         Assertions.assertEquals(response.endTime(), request.endTime());
 
-
         verify(slotRepository).save(any(DoctorSlots.class));
         verify(repository).findById(id);
     }
 
     @Test
-    void getSlotsByDoctorTest()
-    {
+    void getSlotsByDoctorTest() {
         UUID id = UUID.randomUUID();
 
         DoctorSlots slot1 = DoctorSlots.builder()
-            .id(UUID.randomUUID())
-            .doctor(doctor)
-            .startTime(LocalDateTime.of(2025, 1, 10, 9, 0))
-            .endTime(LocalDateTime.of(2025, 1, 10, 10, 0))
-            .build();
+                .id(UUID.randomUUID())
+                .doctor(doctor)
+                .startTime(LocalDateTime.of(2025, 1, 10, 9, 0))
+                .endTime(LocalDateTime.of(2025, 1, 10, 10, 0))
+                .build();
 
         DoctorSlots slot2 = DoctorSlots.builder()
-            .id(UUID.randomUUID())
-            .doctor(doctor)
-            .startTime(LocalDateTime.of(2025, 1, 10, 11, 0))
-            .endTime(LocalDateTime.of(2025, 1, 10, 12, 0))
-            .build();
+                .id(UUID.randomUUID())
+                .doctor(doctor)
+                .startTime(LocalDateTime.of(2025, 1, 10, 11, 0))
+                .endTime(LocalDateTime.of(2025, 1, 10, 12, 0))
+                .build();
 
         DoctorSlots slot3 = DoctorSlots.builder()
-            .id(UUID.randomUUID())
-            .doctor(doctor)
-            .startTime(LocalDateTime.of(2025, 1, 10, 14, 0))
-            .endTime(LocalDateTime.of(2025, 1, 10, 15, 0))
-            .build();
+                .id(UUID.randomUUID())
+                .doctor(doctor)
+                .startTime(LocalDateTime.of(2025, 1, 10, 14, 0))
+                .endTime(LocalDateTime.of(2025, 1, 10, 15, 0))
+                .build();
 
         when(slotRepository.findByDoctorId(id)).thenReturn(List.of(slot1, slot2, slot3));
 
@@ -177,8 +174,75 @@ public class DoctorServiceTest {
     }
 
     @Test
-    void getAvailableSlotsTest()
-    {
+    void getAvailableSlotsTest() {
+        DoctorSlots slot1 = DoctorSlots.builder()
+                .id(UUID.randomUUID())
+                .doctor(doctor)
+                .status(SlotStatus.AVAILABLE)
+                .startTime(LocalDateTime.of(2025, 1, 10, 9, 0))
+                .endTime(LocalDateTime.of(2025, 1, 10, 10, 0))
+                .build();
 
+        DoctorSlots slot2 = DoctorSlots.builder()
+                .id(UUID.randomUUID())
+
+                .doctor(doctor)
+                .startTime(LocalDateTime.of(2025, 1, 10, 11, 0))
+                .endTime(LocalDateTime.of(2025, 1, 10, 12, 0))
+                .build();
+
+        when(slotRepository.findByDoctorIdAndStatus(doctor.getId(), SlotStatus.AVAILABLE))
+                .thenReturn(List.of(slot1, slot2));
+
+        List<DoctorSlotResponse> slotResponses = service.getAvailableSlots(doctor.getId());
+
+        Assertions.assertEquals(slot1.getDoctor().getFirstName(), slotResponses.get(0).firstName());
+        Assertions.assertEquals(slotResponses.get(0).startTime(), slot1.getStartTime());
+        Assertions.assertEquals(SlotStatus.AVAILABLE, slot1.getStatus());
+        Assertions.assertEquals(2, slotResponses.size());
+
+        verify(slotRepository).findByDoctorIdAndStatus(doctor.getId(), SlotStatus.AVAILABLE);
+    }
+
+    @Test
+    void doctorExistsTest() {
+        when(repository.existsById(doctor.getId())).thenReturn(true);
+
+        boolean check = service.doctorExists(doctor.getId());
+
+        Assertions.assertEquals(true, check);
+
+        verify(repository).existsById(doctor.getId());
+    }
+
+    @Test
+    void getAllDoctors() {
+        when(repository.findAll()).thenReturn(List.of(doctor));
+
+        List<DoctorResponse> doctors = service.getAllDoctors();
+
+        Assertions.assertEquals(doctor.getFirstName(), doctors.get(0).firstName());
+        Assertions.assertEquals(1, doctors.size());
+        verify(repository).findAll();
+    }
+
+    @Test
+    void testPrivateMethodDoctorSlotResponse()
+            throws NoSuchMethodException, SecurityException, IllegalAccessException, InvocationTargetException {
+        Method docSlotResponse = DoctorService.class.getDeclaredMethod("tDoctorSlotResponse", DoctorSlots.class);
+
+        DoctorSlots slot2 = DoctorSlots.builder()
+                .id(UUID.randomUUID())
+
+                .doctor(doctor)
+                .startTime(LocalDateTime.of(2025, 1, 10, 11, 0))
+                .endTime(LocalDateTime.of(2025, 1, 10, 12, 0))
+                .build();
+
+        docSlotResponse.setAccessible(true);
+        DoctorSlotResponse response = (DoctorSlotResponse) docSlotResponse.invoke(service, slot2);
+
+        Assertions.assertEquals(slot2.getDoctor().getId(), response.doctorId());
+        Assertions.assertEquals(slot2.getStartTime(), response.startTime());
     }
 }

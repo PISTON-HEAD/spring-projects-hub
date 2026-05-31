@@ -5,18 +5,25 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import com.healthcare.doctor_service.entity.DoctorSlots;
 import com.healthcare.doctor_service.enums.SlotStatus;
 
 public interface DoctorSlotRepository extends JpaRepository<DoctorSlots, UUID> {
- List<DoctorSlots> findByDoctorId(UUID doctorId);
+  List<DoctorSlots> findByDoctorId(UUID doctorId);
 
- List<DoctorSlots> findByDoctorIdAndStatus(UUID doctorId, SlotStatus status);
+  @Query("""
+      SELECT ds
+      FROM DoctorSlots ds
+      WHERE ds.doctor.id = :doctorId
+      AND ds.status = :status
+      """)
+  List<DoctorSlots> findByDoctorIdAndStatus(UUID doctorId, SlotStatus status);
 
- boolean existsByDoctorIdAndStartTimeAndEndTime(
-   UUID doctorId,
-   LocalDateTime startTime,
-   LocalDateTime endTime);
+  boolean existsByDoctorIdAndStartTimeAndEndTime(
+      UUID doctorId,
+      LocalDateTime startTime,
+      LocalDateTime endTime);
 
 }
