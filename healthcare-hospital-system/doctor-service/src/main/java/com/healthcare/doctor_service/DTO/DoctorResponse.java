@@ -1,5 +1,6 @@
 package com.healthcare.doctor_service.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -11,6 +12,6 @@ public record DoctorResponse(
     String email,
     String phoneNumber,
     Boolean active,
-    LocalDateTime createdAt) {
+    LocalDateTime createdAt) implements Serializable {
 
 }

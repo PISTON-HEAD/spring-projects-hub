@@ -3,6 +3,9 @@ package com.healthcare.doctor_service.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +35,7 @@ public class DoctorService {
  private final DoctorSlotRepository doctorSlotsRepository;
 
  @Transactional
+ @CacheEvict(value = "doctors", allEntries = true)
  public DoctorResponse createDoctor(CreateDoctorRequest request) {
   if (repository.existsByEmail(request.email())) {
    throw new IllegalArgumentException("Doctor with this email already exists");
@@ -52,6 +56,7 @@ public class DoctorService {
  }
 
  @Transactional
+ @Cacheable(key = "#doctorId", value="doctor")
  public DoctorResponse getDoctorById(UUID doctorId) {
   Doctor doctor = repository.findById(doctorId)
     .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with ID: " + doctorId));
@@ -60,6 +65,10 @@ public class DoctorService {
  }
 
  @Transactional
+ @Caching(evict = {
+    @CacheEvict(value = "availableSlots", allEntries = true),
+    @CacheEvict(value = "slots", allEntries = true)
+})
  public DoctorSlotResponse createDoctorSlot(UUID doctorId, CreateDoctorSlotRequest request) {
   Doctor doctor = repository.findById(doctorId)
     .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with ID: " + doctorId));
@@ -77,6 +86,7 @@ public class DoctorService {
  }
 
   @Transactional
+  @Cacheable(value = "slots", key = "#doctorId + '-' + #page + '-' + #size")
   public Page<DoctorSlotResponse> getSlotsByDoctor(UUID doctorId, int page, int size){
     Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt"));
     Page<DoctorSlots> slots = doctorSlotsRepository.findByDoctorId(doctorId, pageable);
@@ -84,6 +94,7 @@ public class DoctorService {
   }
 
   @Transactional
+  @Cacheable(value = "availableSlots", key = "#doctorId + '-' + #page + '-' + #size")
   public Page<DoctorSlotResponse> getAvailableSlots(UUID doctorId, int page, int size){
     Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt"));
     Page<DoctorSlots> slots = doctorSlotsRepository.findByDoctorIdAndStatus(doctorId, SlotStatus.AVAILABLE, pageable);
@@ -100,12 +111,19 @@ public class DoctorService {
  }
 
 
+ @Transactional
+ @Cacheable(key = "#page + '-' + #size", value = "doctors")
  public Page<DoctorResponse> getAllDoctors(int page, int size) {
   Pageable pageable = PageRequest.of(page,size, Sort.by("firstName").ascending());
   Page<Doctor> doctors = repository.findAll(pageable);
   return doctors.map(this::tDoctorResponse);
  }
 
+ @Transactional
+ @Caching(evict = {
+    @CacheEvict(value = "availableSlots", allEntries = true),
+    @CacheEvict(value = "slots", allEntries = true)
+})
  public DoctorSlotResponse reserveSlot(UUID slotId, UUID appointmentId){
   DoctorSlots slot = doctorSlotsRepository.findById(slotId).orElseThrow(() -> new SlotNotFoundException("Slot not found with ID: " + slotId));
   if (slot.getStatus() != SlotStatus.AVAILABLE) {
@@ -117,6 +135,11 @@ public class DoctorService {
   return tDoctorSlotResponse(slot);
 }
 
+@Transactional
+@Caching(evict = {
+    @CacheEvict(value = "availableSlots", allEntries = true),
+    @CacheEvict(value = "slots", allEntries = true)
+})
  public DoctorSlotResponse confirmSlot(UUID slotId)
  {
   DoctorSlots slot = doctorSlotsRepository.findById(slotId).orElseThrow(() -> new SlotNotFoundException("Slot not found with ID: " + slotId));
@@ -128,7 +151,11 @@ public class DoctorService {
   return tDoctorSlotResponse(slot);
  }
 
-
+@Transactional
+@Caching(evict = {
+    @CacheEvict(value = "availableSlots", allEntries = true),
+    @CacheEvict(value = "slots", allEntries = true)
+})
 public DoctorSlotResponse releaseSlot(UUID slotId)
 {
   DoctorSlots slot = doctorSlotsRepository.findById(slotId).orElseThrow(() -> new SlotNotFoundException("Slot not found with ID: " + slotId));
