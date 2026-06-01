@@ -2,6 +2,10 @@ package com.healthcare.patient_service.service;
 
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.healthcare.patient_service.dto.CreatePatientRequest;
@@ -45,6 +49,13 @@ public class PatientService {
     CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(), savedPatient.getFirstName(),
         savedPatient.getLastName(), savedPatient.getEmail(), savedPatient.getCreatedAt());
     return patientResponse;
+  }
+
+  @Transactional
+  public Page<CreatePatientResponse> getAllPatients(int page, int size) {
+    Pageable pageable = PageRequest.of(page, size, Sort.by("firstName").ascending());
+    return patientRepository.findAll(pageable)
+        .map(p -> new CreatePatientResponse(p.getId(), p.getFirstName(), p.getLastName(), p.getEmail(), p.getCreatedAt()));
   }
 
   @Transactional
