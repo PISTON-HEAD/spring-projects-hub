@@ -1,4 +1,4 @@
-Services:
+services:
   doctor-service:
     build: .
     container_name: doctor-service
@@ -7,13 +7,17 @@ Services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/doctor_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
-      ports:
-      - "8490:8490"
-      depends_on:
-        mysql:
-          condition: service_healthy
-      networks:
-      - doctor-database-network
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+    - "8490:8490"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+    - doctor-database-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8490/actuator/health || exit 1"]
       interval: 1m30s
@@ -40,11 +44,24 @@ Services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s
       retries: 3
+  
+  redis:
+    image: redis:alpine
+    container_name: doctor-service-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - doctor-database-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   doctor-database-network:
     driver: bridge
 
-volumers:
+volumes:
   mysql-data:
     driver: local

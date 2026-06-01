@@ -64,6 +64,18 @@
             <version>${spring-ai.version}</version>
         </dependency>
 
+        <!-- Cache abstraction -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-cache</artifactId>
+    </dependency>
+
+    <!-- Redis -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+
         <!-- Retry Support -->
         <dependency>
             <groupId>org.springframework.retry</groupId>

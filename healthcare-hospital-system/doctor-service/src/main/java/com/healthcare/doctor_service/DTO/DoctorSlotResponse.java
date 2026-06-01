@@ -1,5 +1,6 @@
 package com.healthcare.doctor_service.dto;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -14,6 +15,6 @@ public record DoctorSlotResponse(
   SlotStatus status,
   UUID reservedByAppointmentId
 
-) {
+) implements Serializable {
 
 }
