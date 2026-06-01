@@ -55,6 +55,6 @@ public class PatientController {
 
  @PutMapping("/{patientId}")
  public ResponseEntity<?> updatePatient(@PathVariable UUID patientId, @Valid @RequestBody UpdatePatient request) {
-  return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(service.updatePatient(patientId, request));
+  return ResponseEntity.ok(service.updatePatient(patientId, request));
  }
 }

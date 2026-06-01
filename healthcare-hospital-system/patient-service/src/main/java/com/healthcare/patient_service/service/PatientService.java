@@ -30,7 +30,7 @@ public class PatientService {
 
   @Transactional
   @CacheEvict(value = "patients", allEntries = true)
-  public Object createPatient(CreatePatientRequest request) {
+  public CreatePatientResponse createPatient(CreatePatientRequest request) {
     if (patientRepository.existsByEmail(request.email())) {
       throw new IllegalArgumentException("Email already exists");
     }
