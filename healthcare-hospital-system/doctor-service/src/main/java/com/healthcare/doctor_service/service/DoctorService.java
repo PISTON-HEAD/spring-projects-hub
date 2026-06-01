@@ -1,6 +1,5 @@
 package com.healthcare.doctor_service.service;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.cache.annotation.CacheEvict;

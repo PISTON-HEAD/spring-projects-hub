@@ -2,6 +2,9 @@ package com.healthcare.patient_service.service;
 
 import java.util.UUID;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +29,7 @@ public class PatientService {
   private final PatientRepository patientRepository;
 
   @Transactional
+  @CacheEvict(value = "patients", allEntries = true)
   public Object createPatient(CreatePatientRequest request) {
     if (patientRepository.existsByEmail(request.email())) {
       throw new IllegalArgumentException("Email already exists");
@@ -43,6 +47,7 @@ public class PatientService {
   }
 
   @Transactional
+  @Cacheable(key = "#patientId", value = "patient")
   public CreatePatientResponse getPatientById(UUID patientId) {
     Patient savedPatient = patientRepository.findById(patientId)
         .orElseThrow(() -> new PatientNotFoundException("Patient not found with id: " + patientId));
@@ -52,6 +57,7 @@ public class PatientService {
   }
 
   @Transactional
+  @Cacheable(key = "#page + '-' + #size", value = "patients")
   public Page<CreatePatientResponse> getAllPatients(int page, int size) {
     Pageable pageable = PageRequest.of(page, size, Sort.by("firstName").ascending());
     return patientRepository.findAll(pageable)
@@ -64,6 +70,10 @@ public class PatientService {
   }
 
   @Transactional
+  @Caching(evict = {
+    @CacheEvict(value = "patients", allEntries = true),
+    @CacheEvict(value = "patient", key = "#patientId")
+  })
   public CreatePatientResponse updatePatient(UUID patientId, UpdatePatient request) {
     Patient patient = patientRepository.findById(patientId)
         .orElseThrow(() -> new PatientNotFoundException("Patient not found with id: " + patientId));
