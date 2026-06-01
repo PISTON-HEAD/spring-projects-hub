@@ -2,6 +2,7 @@ package com.healthcare.doctor_service.service;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +20,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import com.healthcare.doctor_service.dto.CreateDoctorRequest;
 import com.healthcare.doctor_service.dto.CreateDoctorSlotRequest;
@@ -162,15 +168,21 @@ public class DoctorServiceTest {
                 .endTime(LocalDateTime.of(2025, 1, 10, 15, 0))
                 .build();
 
-        when(slotRepository.findByDoctorId(id)).thenReturn(List.of(slot1, slot2, slot3));
+            
+            Pageable pageable = PageRequest.of(0,10,
+                Sort.by("createdAt")
+            );
+            List<DoctorSlots> slotList = List.of(slot1, slot2, slot3);
+            Page<DoctorSlots> slotPage = new PageImpl<>(slotList, pageable, slotList.size());
+        when(slotRepository.findByDoctorId(eq(id), any(Pageable.class))).thenReturn(slotPage);
 
-        List<DoctorSlotResponse> slots = service.getSlotsByDoctor(id);
+        Page<DoctorSlotResponse> slots = service.getSlotsByDoctor(id,0,10);
 
-        Assertions.assertEquals(3, slots.size());
-        Assertions.assertEquals(slot1.getStartTime(), slots.get(0).startTime());
-        Assertions.assertEquals(slot2.getStartTime(), slots.get(1).startTime());
+        Assertions.assertEquals(3, slots.getTotalElements());
+        Assertions.assertEquals(slot1.getStartTime(), slots.getContent().get(0).startTime());
+        Assertions.assertEquals(slot2.getStartTime(), slots.getContent().get(1).startTime());
 
-        verify(slotRepository).findByDoctorId(id);
+        verify(slotRepository).findByDoctorId(eq(id), any(Pageable.class));
     }
 
     @Test
@@ -191,17 +203,21 @@ public class DoctorServiceTest {
                 .endTime(LocalDateTime.of(2025, 1, 10, 12, 0))
                 .build();
 
-        when(slotRepository.findByDoctorIdAndStatus(doctor.getId(), SlotStatus.AVAILABLE))
-                .thenReturn(List.of(slot1, slot2));
+            Pageable pageable = PageRequest.of(0,10,Sort.by("createdAt"));
+            List<DoctorSlots> slotList = List.of(slot1, slot2);
+            Page<DoctorSlots> slotPage = new PageImpl<>(slotList, pageable, slotList.size());
+        
+        when(slotRepository.findByDoctorIdAndStatus(eq(doctor.getId()), eq(SlotStatus.AVAILABLE), any(Pageable.class)))
+                .thenReturn(slotPage);
 
-        List<DoctorSlotResponse> slotResponses = service.getAvailableSlots(doctor.getId());
+        Page<DoctorSlotResponse> slotResponses = service.getAvailableSlots(doctor.getId(),0,10);
 
-        Assertions.assertEquals(slot1.getDoctor().getFirstName(), slotResponses.get(0).firstName());
-        Assertions.assertEquals(slotResponses.get(0).startTime(), slot1.getStartTime());
+        Assertions.assertEquals(slot1.getDoctor().getFirstName(), slotResponses.getContent().get(0).firstName());
+        Assertions.assertEquals(slotResponses.getContent().get(0).startTime(), slot1.getStartTime());
         Assertions.assertEquals(SlotStatus.AVAILABLE, slot1.getStatus());
-        Assertions.assertEquals(2, slotResponses.size());
+        Assertions.assertEquals(2, slotResponses.getTotalElements());
 
-        verify(slotRepository).findByDoctorIdAndStatus(doctor.getId(), SlotStatus.AVAILABLE);
+        verify(slotRepository).findByDoctorIdAndStatus(eq(doctor.getId()), eq(SlotStatus.AVAILABLE), any(Pageable.class));
     }
 
     @Test
@@ -217,13 +233,16 @@ public class DoctorServiceTest {
 
     @Test
     void getAllDoctors() {
-        when(repository.findAll()).thenReturn(List.of(doctor));
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("firstName").ascending());
+        Page<Doctor> doctorPage = new PageImpl<>(List.of(doctor), pageable, 1);
 
-        List<DoctorResponse> doctors = service.getAllDoctors();
+        when(repository.findAll(any(Pageable.class))).thenReturn(doctorPage);
 
-        Assertions.assertEquals(doctor.getFirstName(), doctors.get(0).firstName());
-        Assertions.assertEquals(1, doctors.size());
-        verify(repository).findAll();
+        Page<DoctorResponse> doctors = service.getAllDoctors(0, 10);
+
+        Assertions.assertEquals(doctor.getFirstName(), doctors.getContent().get(0).firstName());
+        Assertions.assertEquals(1, doctors.getTotalElements());
+        verify(repository).findAll(any(Pageable.class));
     }
 
     @Test
