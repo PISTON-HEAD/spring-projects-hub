@@ -2,6 +2,8 @@ package com.healthcare.doctor_service.controller;
 
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,18 +32,20 @@ public class DoctorController {
         return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(service.createDoctor(request));
     }
 
-    // GET /api/doctors/{doctorId}/slots
+    // GET /api/doctors/{doctorId}/slots?page=0&size=10
     @GetMapping("/{doctorId}/slots")
-    public ResponseEntity<?> getSlotsByDoctor(@PathVariable UUID doctorId)
+    public ResponseEntity<?> getSlotsByDoctor(@PathVariable UUID doctorId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size)
     {
-        return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.getSlotsByDoctor(doctorId));
+        return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.getSlotsByDoctor(doctorId, page, size));
     }
 
-    // GET /api/doctors/{doctorId}/slots/available
+    // GET /api/doctors/{doctorId}/slots/available?page=0&size=10
     @GetMapping("/{doctorId}/slots/available")
-    public ResponseEntity<?> getAvailableSlotsByDoctor(@PathVariable UUID doctorId)
+    public ResponseEntity<?> getAvailableSlotsByDoctor(@PathVariable UUID doctorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size)
     {
-        return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.getAvailableSlots(doctorId));
+        return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.getAvailableSlots(doctorId, page, size));
     }
 
     // GET /api/doctors/{doctorId}/exists
@@ -51,11 +55,11 @@ public class DoctorController {
         return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.doctorExists(doctorId));
     }
 
-    // GET /api/doctors
+    // GET /api/doctors?page=0&size=10
     @GetMapping
-    public ResponseEntity<?> getAllDoctors()
+    public ResponseEntity<?> getAllDoctors(@RequestParam(defaultValue = "0")int page, @RequestParam(defaultValue = "10")int size)
     {
-        return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.getAllDoctors());
+        return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(service.getAllDoctors(page,size));
     }
 
     // PUT /api/doctors/slots/{slotId}/reserve?appointmentId=xxx

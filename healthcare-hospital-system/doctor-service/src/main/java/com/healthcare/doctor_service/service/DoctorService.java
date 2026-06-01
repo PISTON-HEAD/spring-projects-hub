@@ -3,6 +3,10 @@ package com.healthcare.doctor_service.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.healthcare.doctor_service.dto.CreateDoctorRequest;
@@ -73,15 +77,17 @@ public class DoctorService {
  }
 
   @Transactional
-  public List<DoctorSlotResponse> getSlotsByDoctor(UUID doctorId){
-    List<DoctorSlots> slots = doctorSlotsRepository.findByDoctorId(doctorId);
-    return slots.stream().map(this::tDoctorSlotResponse).toList(); 
+  public Page<DoctorSlotResponse> getSlotsByDoctor(UUID doctorId, int page, int size){
+    Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt"));
+    Page<DoctorSlots> slots = doctorSlotsRepository.findByDoctorId(doctorId, pageable);
+    return slots.map(this::tDoctorSlotResponse); 
   }
 
   @Transactional
-  public List<DoctorSlotResponse> getAvailableSlots(UUID doctorId){
-    List<DoctorSlots> slots = doctorSlotsRepository.findByDoctorIdAndStatus(doctorId, SlotStatus.AVAILABLE);
-    return slots.stream().map(this::tDoctorSlotResponse).toList();
+  public Page<DoctorSlotResponse> getAvailableSlots(UUID doctorId, int page, int size){
+    Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt"));
+    Page<DoctorSlots> slots = doctorSlotsRepository.findByDoctorIdAndStatus(doctorId, SlotStatus.AVAILABLE, pageable);
+    return slots.map(this::tDoctorSlotResponse);
   }
 
 
@@ -94,9 +100,10 @@ public class DoctorService {
  }
 
 
- public List<DoctorResponse> getAllDoctors() {
-  List<Doctor> doctors = repository.findAll();
-  return doctors.stream().map(this::tDoctorResponse).toList();
+ public Page<DoctorResponse> getAllDoctors(int page, int size) {
+  Pageable pageable = PageRequest.of(page,size, Sort.by("firstName").ascending());
+  Page<Doctor> doctors = repository.findAll(pageable);
+  return doctors.map(this::tDoctorResponse);
  }
 
  public DoctorSlotResponse reserveSlot(UUID slotId, UUID appointmentId){
