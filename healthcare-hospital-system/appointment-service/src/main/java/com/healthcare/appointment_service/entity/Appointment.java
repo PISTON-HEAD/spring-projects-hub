@@ -13,6 +13,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -57,10 +58,18 @@ public class Appointment {
     @NotNull
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     @PrePersist
     public void prePersist()
     {
         this.createdAt = LocalDateTime.now();
         this.status = AppointmentStatus.PENDING;
+    }
+
+    @PreUpdate
+    public void preUpdate()
+    {
+        this.updatedAt = LocalDateTime.now();
     }
 }
