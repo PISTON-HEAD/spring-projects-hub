@@ -44,3 +44,7 @@ info:
     name: doctor-service
     description: Manages doctor profile data for healthcare appointment system
     version: 1.0.0
+
+logging:
+  level:
+    root: INFO

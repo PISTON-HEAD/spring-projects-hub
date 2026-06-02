@@ -47,3 +47,7 @@ info:
     name: patient-service
     description: Manages patient profile data for healthcare appointment system
     version: 1.0.0
+
+logging:
+  level:
+    root: INFO  
