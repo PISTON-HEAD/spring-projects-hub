@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
 		Map<String, Object> exMap = new HashMap<>();
         exMap.put("exception", exceptions.getClass());
         exMap.put("Message", exceptions.getMessage());
-        exMap.put("Staus Code", status.value());
+        exMap.put("statusCode", status.value());
         return ResponseEntity.status(status.value()).body(exMap);
 	}
 }
