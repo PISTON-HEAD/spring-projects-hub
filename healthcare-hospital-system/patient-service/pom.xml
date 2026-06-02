@@ -27,6 +27,8 @@
         <java.version>21</java.version>
         <spring-ai.version>1.1.4</spring-ai.version>
         <lombok.version>1.18.36</lombok.version>
+        <grpc.version>1.65.0</grpc.version>
+        <protobuf.version>3.25.3</protobuf.version>
     </properties>
 
     <!-- Dependencies -->
@@ -104,6 +106,13 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- Required for gRPC generated code: @javax.annotation.Generated was removed from JDK 9+ -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -111,6 +120,35 @@
             <optional>true</optional>
         </dependency>
 
+
+        <!-- gRPC Server Starter (Spring Boot 3.x compatible) -->
+        <!-- Embeds a Netty gRPC server inside the Spring Boot app -->
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-server-spring-boot-starter</artifactId>
+            <version>3.1.0.RELEASE</version>
+        </dependency>
+
+        <!-- Protobuf Java Runtime (required by gRPC generated code) -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+
+        <!-- gRPC Stub (contains StreamObserver and generated stub base classes) -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
+        </dependency>
+
+        <!-- gRPC Protobuf (serialization bridge between protobuf and gRPC) -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-protobuf</artifactId>
+            <version>${grpc.version}</version>
+        </dependency>
 
         <!-- Testing -->
         <dependency>
@@ -123,6 +161,15 @@
 
     <!-- Build -->
     <build>
+        <extensions>
+            <!-- Detects OS/arch so protobuf plugin downloads the right compiler binary -->
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
+
         <plugins>
 
             <!-- Spring Boot Plugin -->
@@ -157,6 +204,28 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+            <!-- Protobuf Plugin -->
+            <!-- Compiles .proto files into Java classes during mvn compile -->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+                    <pluginId>grpc-java</pluginId>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>compile-custom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>

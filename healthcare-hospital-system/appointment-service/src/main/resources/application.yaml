@@ -65,5 +65,5 @@ info:
 
 logging:
   level:
-    com.healthcare.appointment_service: DEBUG
+    com.healthcare.appointment_service: INFO
     org.springframework: WARN
