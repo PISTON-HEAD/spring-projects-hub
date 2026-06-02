@@ -1,0 +1,69 @@
+server:
+  port: 8482
+
+spring:
+  application:
+    name: appointment-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/appointment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: appointment_user
+    password: appointment_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+
+  # GraphQL configuration
+  graphql:
+    graphiql:
+      enabled: true   # enables the browser UI at /graphiql for testing queries
+
+# gRPC client configuration
+# We will fill these in when we reach the gRPC phase
+# grpc:
+#   client:
+#     doctor-service:
+#       address: static://localhost:9090
+#       negotiation-type: plaintext
+#     patient-service:
+#       address: static://localhost:9091
+#       negotiation-type: plaintext
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: appointment-service
+    description: Orchestrator service for healthcare appointment booking and saga flow
+    version: 1.0.0
+
+logging:
+  level:
+    com.healthcare.appointment_service: DEBUG
+    org.springframework: WARN

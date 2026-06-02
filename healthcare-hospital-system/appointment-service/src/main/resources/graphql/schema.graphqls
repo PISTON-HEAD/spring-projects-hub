@@ -1,0 +1,9 @@
+type Query {
+    # We will define queries here when we reach the GraphQL phase
+    # Example: getAppointmentById(appointmentId: ID!): AppointmentResponse
+}
+
+type Mutation {
+    # We will define mutations here when we reach the GraphQL phase
+    # Example: createAppointment(request: CreateAppointmentInput!): AppointmentResponse
+}
