@@ -1,0 +1,76 @@
+services:
+  appointment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: appointment-service
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/appointment_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      GRPC_CLIENT_PATIENT_SERVICE_ADDRESS: static://host.docker.internal:9091
+      GRPC_CLIENT_PATIENT_SERVICE_NEGOTIATION_TYPE: PLAINTEXT
+      GRPC_CLIENT_DOCTOR_SERVICE_ADDRESS: static://host.docker.internal:9092
+      GRPC_CLIENT_DOCTOR_SERVICE_NEGOTIATION_TYPE: PLAINTEXT
+    ports:
+      - "8482:8482"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - appointment-service-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8482/actuator/health || exit 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+
+  mysql:
+    image: mysql:8.0
+    container_name: appointment-database
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: appointment_db
+      MYSQL_USER: appointment_user
+      MYSQL_PASSWORD: appointment_pass
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - appointment-service-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  redis:
+    image: redis:alpine
+    container_name: appointment-service-redis
+    ports:
+      - "6373:6379"
+    networks:
+      - appointment-service-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  appointment-service-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local

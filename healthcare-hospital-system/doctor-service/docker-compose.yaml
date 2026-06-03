@@ -11,13 +11,14 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
     ports:
     - "8490:8490"
+    - "9092:9092"
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
     networks:
-    - doctor-database-network
+    - doctor-service-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8490/actuator/health || exit 1"]
       interval: 1m30s
@@ -39,7 +40,7 @@ services:
       - mysql-data:/var/lib/mysql
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
-      - doctor-database-network
+      - doctor-service-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 30s
@@ -49,9 +50,9 @@ services:
     image: redis:alpine
     container_name: doctor-service-redis
     ports:
-      - "6379:6379"
+      - "6372:6379"
     networks:
-      - doctor-database-network
+      - doctor-service-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -59,7 +60,7 @@ services:
       retries: 3
 
 networks:
-  doctor-database-network:
+  doctor-service-network:
     driver: bridge
 
 volumes:

@@ -1,9 +1,29 @@
+type AppointmentResponse {
+    id: ID!
+    patientId: ID!
+    doctorId: ID!
+    slotId: ID!
+    status: String!
+    reason: String
+    notes: String
+    appointmentDateTime: String!
+    createdAt: String!
+}
+
+input CreateAppointmentInput {
+    patientId: ID!
+    doctorId: ID!
+    slotId: ID!
+    reason: String
+    appointmentTime: String!
+} 
+
 type Query {
-    # We will define queries here when we reach the GraphQL phase
-    # Example: getAppointmentById(appointmentId: ID!): AppointmentResponse
+    getAppointmentById(appointmentId: ID!): AppointmentResponse
+    getAppointmentByPatient(patientId: ID!, page: Int, size: Int): [AppointmentResponse]
+    getAppointmentsByDoctor(doctorId: ID!, page: Int, size: Int): [AppointmentResponse]
 }
 
 type Mutation {
-    # We will define mutations here when we reach the GraphQL phase
-    # Example: createAppointment(request: CreateAppointmentInput!): AppointmentResponse
+    createAppointment(request: CreateAppointmentInput!): AppointmentResponse
 }
