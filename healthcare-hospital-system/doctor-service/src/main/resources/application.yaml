@@ -27,8 +27,10 @@ spring:
 
 
 
-management:
-  endpoints:
+grpc:
+  server:
+    port: 9092   # gRPC server port — separate from HTTP port (8490)
+
     web:
       exposure:
         include: health,info,metrics,prometheus
