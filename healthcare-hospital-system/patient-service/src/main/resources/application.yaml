@@ -42,12 +42,10 @@ management:
     env:
       enabled: true
 
-info:
-  app:
-    name: patient-service
-    description: Manages patient profile data for healthcare appointment system
-    version: 1.0.0
+grpc:
+  server:
+    port: 9091   # gRPC server port — separate from HTTP port (8481)
 
 logging:
   level:
-    root: INFO  
+    root: INFO

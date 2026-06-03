@@ -35,15 +35,14 @@ spring:
       enabled: true   # enables the browser UI at /graphiql for testing queries
 
 # gRPC client configuration
-# We will fill these in when we reach the gRPC phase
-# grpc:
-#   client:
-#     doctor-service:
-#       address: static://localhost:9090
-#       negotiation-type: plaintext
-#     patient-service:
-#       address: static://localhost:9091
-#       negotiation-type: plaintext
+grpc:
+  client:
+    patient-service:
+      address: static://localhost:9091
+      negotiation-type: plaintext
+    doctor-service:
+      address: static://localhost:9092
+      negotiation-type: plaintext
 
 management:
   endpoints:

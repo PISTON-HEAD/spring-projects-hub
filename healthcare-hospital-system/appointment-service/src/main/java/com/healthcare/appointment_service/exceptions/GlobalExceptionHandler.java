@@ -34,6 +34,16 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex)
+    {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("exception", ex.getClass().getSimpleName());
+        errorResponse.put("Message", ex.getMessage());
+        errorResponse.put("statusCode", HttpStatus.UNPROCESSABLE_ENTITY.value());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
+    }
+
 	private ResponseEntity<Map<String, Object>> buildErrorResponse(AppointmentNotFoundExceptions exceptions, HttpStatus status) {
 		Map<String, Object> exMap = new HashMap<>();
         exMap.put("exception", exceptions.getClass());
