@@ -31,6 +31,8 @@ grpc:
   server:
     port: 9092   # gRPC server port — separate from HTTP port (8490)
 
+management:
+  endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus

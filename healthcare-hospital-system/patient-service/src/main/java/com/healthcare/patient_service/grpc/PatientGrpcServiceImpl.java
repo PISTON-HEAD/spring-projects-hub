@@ -15,6 +15,7 @@ public class PatientGrpcServiceImpl extends PatientGrpcServiceGrpc.PatientGrpcSe
 
     private final PatientRepository patientRepository;
 
+    @Override
     public void checkPatientExists(PatientRequest request, StreamObserver<PatientResponse> responseObserver)
     {
         try{

@@ -11,6 +11,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
     ports:
     - "8481:8481"
+    - "9091:9091"
     depends_on:
       mysql:
         condition: service_healthy

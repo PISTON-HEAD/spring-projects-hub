@@ -28,7 +28,6 @@ import net.devh.boot.grpc.client.inject.GrpcClient;
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
-
     private final AppointmentRepository repository;
 
     @GrpcClient("patient-service")
@@ -37,35 +36,34 @@ public class AppointmentService {
     @GrpcClient("doctor-service")
     private DoctorGrpcServiceGrpc.DoctorGrpcServiceBlockingStub doctorStub;
 
+
+
     @Transactional
     @CacheEvict(allEntries = true, value = "appointments")
     public AppointmentResponse createAppointment(CreateAppointmentRequest request)
     {
-        // Validate patient exists via gRPC
-        PatientResponse patientResponse = patientStub.checkPatientExists(
-                PatientRequest.newBuilder()
-                        .setPatientId(request.patientId().toString())
-                        .build());
+        PatientResponse patientResponse = patientStub.checkPatientExists(PatientRequest.newBuilder()
+        .setPatientId(request.patientId().toString())
+        .build());
         if (!patientResponse.getExists()) {
-            throw new IllegalArgumentException("Patient not found with id: " + request.patientId());
+            throw new IllegalArgumentException("Patient not found: " + request.patientId());
         }
 
-        // Validate doctor exists via gRPC
         DoctorResponse doctorResponse = doctorStub.checkDoctorExists(
-                DoctorRequest.newBuilder()
-                        .setDoctorId(request.doctorId().toString())
-                        .build());
+        DoctorRequest.newBuilder()
+            .setDoctorId(request.doctorId().toString())
+            .build());
         if (!doctorResponse.getExists()) {
-            throw new IllegalArgumentException("Doctor not found with id: " + request.doctorId());
+            throw new IllegalArgumentException("Doctor not found: " + request.doctorId());
         }
 
         Appointment appointment = Appointment.builder()
-                .patientId(request.patientId())
-                .doctorId(request.doctorId())
-                .slotId(request.slotId())
-                .reason(request.reason())
-                .appointmentDateTime(request.appointmentTime())
-                .build();
+        .patientId(request.patientId())
+        .doctorId(request.doctorId())
+        .slotId(request.slotId())
+        .reason(request.reason())
+        .appointmentDateTime(request.appointmentTime())
+        .build();
 
         Appointment saved = repository.save(appointment);
         return toResponse(saved);
@@ -76,7 +74,7 @@ public class AppointmentService {
     public AppointmentResponse getAppointmentById(UUID appointmentId)
     {
         Appointment appointment = repository.findById(appointmentId)
-                .orElseThrow(() -> new AppointmentNotFoundExceptions("Appointment not found with id: " + appointmentId));
+        .orElseThrow(() -> new AppointmentNotFoundExceptions("Appointment not found with id: " + appointmentId));
         return toResponse(appointment);
     }
 
@@ -85,7 +83,7 @@ public class AppointmentService {
     public Page<AppointmentResponse> getAppointmentsByPatient(UUID patientId, int page, int size)
     {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return repository.findByPatientId(patientId, pageable).map(this::toResponse);
+        return repository.findByPatientId(patientId, pageable).map(this::toResponse);   
     }
 
     @Transactional
@@ -98,9 +96,9 @@ public class AppointmentService {
 
     private AppointmentResponse toResponse(Appointment a) {
         return new AppointmentResponse(
-                a.getId(), a.getPatientId(), a.getDoctorId(), a.getSlotId(),
-                a.getStatus(), a.getReason(), a.getNotes(),
-                a.getAppointmentDateTime(), a.getCreatedAt()
+        a.getId(), a.getPatientId(), a.getDoctorId(), a.getSlotId(),
+        a.getStatus(), a.getReason(), a.getNotes(),
+        a.getAppointmentDateTime(), a.getCreatedAt()
         );
     }
 }
