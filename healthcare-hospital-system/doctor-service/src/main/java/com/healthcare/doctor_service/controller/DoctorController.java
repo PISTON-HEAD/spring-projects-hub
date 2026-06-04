@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.healthcare.doctor_service.dto.CreateDoctorRequest;
+import com.healthcare.doctor_service.dto.CreateDoctorSlotRequest;
 import com.healthcare.doctor_service.service.DoctorService;
 
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +30,13 @@ public class DoctorController {
     public ResponseEntity<?> createDoctor(@Valid @RequestBody CreateDoctorRequest request)
     {
         return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(service.createDoctor(request));
+    }
+
+    // POST /api/doctors/{doctorId}/slots
+    @PostMapping("/{doctorId}/slots")
+    public ResponseEntity<?> createSlot(@PathVariable UUID doctorId, @Valid @RequestBody CreateDoctorSlotRequest request)
+    {
+        return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(service.createDoctorSlot(doctorId, request));
     }
 
     // GET /api/doctors/{doctorId}/slots?page=0&size=10

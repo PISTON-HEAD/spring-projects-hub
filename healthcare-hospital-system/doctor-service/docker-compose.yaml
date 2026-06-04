@@ -38,7 +38,7 @@ services:
       - "3310:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ./init-script:/docker-entrypoint-initdb.d
     networks:
       - doctor-service-network
     healthcheck:
