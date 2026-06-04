@@ -65,4 +65,12 @@ public class Patient {
  public void prePersist() {
   this.createdAt = LocalDateTime.now();
  }
+
+ public void setAddress(PatientAddress address) {
+  this.address = address;
+
+  if (address != null) {
+   address.setPatient(this);
+  }
+ }
 }
