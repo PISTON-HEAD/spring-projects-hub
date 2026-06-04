@@ -61,6 +61,13 @@ public class Patient {
  @Column(nullable = false)
  private LocalDateTime createdAt;
 
+ public void setAddress(PatientAddress address) {
+  this.address = address;
+  if (address != null) {
+   address.setPatient(this);
+  }
+ }
+
  @PrePersist
  public void prePersist() {
   this.createdAt = LocalDateTime.now();

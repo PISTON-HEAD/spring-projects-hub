@@ -35,9 +35,11 @@ public class PatientService {
       throw new IllegalArgumentException("Email already exists");
     }
 
-    Patient savePatient = Patient.builder().address(request.address()).age(request.age()).email(request.email())
+    Patient savePatient = Patient.builder().age(request.age()).email(request.email())
         .firstName(request.firstName()).lastName(request.lastName()).phoneNumber(request.phoneNumber())
         .gender(request.gender()).build();
+
+    savePatient.setAddress(request.address());
 
     Patient savedPatient = patientRepository.save(savePatient);
     CreatePatientResponse patientResponse = new CreatePatientResponse(savedPatient.getId(),
