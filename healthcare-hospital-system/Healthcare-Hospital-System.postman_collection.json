@@ -1,0 +1,902 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Healthcare Hospital System",
+    "description": "Complete API collection for the Healthcare Hospital System microservices.\n\n## Services\n| Service | Port |\n|---|---|\n| patient-service | 8481 |\n| doctor-service | 8490 |\n| appointment-service | 8482 |\n\n## Seeded UUIDs (ready to use)\n**Patients**\n- Rahul Sharma: `11111111-1111-1111-1111-111111111111`\n- Ananya Rao: `22222222-2222-2222-2222-222222222222`\n- David Thomas: `33333333-3333-3333-3333-333333333333`\n\n**Doctors**\n- Dr. Arun Kumar (Cardiology): `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa`\n- Dr. Priya Nair (Dermatology): `bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb`\n- Dr. Vikram Mehta (Orthopedics): `cccccccc-cccc-cccc-cccc-cccccccccccc`\n- Dr. Sneha Patel (Neurology): `dddddddd-dddd-dddd-dddd-dddddddddddd`\n\n**Doctor Slots (AVAILABLE)**\n- Dr. Arun Kumar 09:00: `11111111-0000-0000-0000-000000000001`\n- Dr. Priya Nair 09:00: `22222222-0000-0000-0000-000000000001`\n- Dr. Priya Nair 10:00: `22222222-0000-0000-0000-000000000002`\n- Dr. Vikram Mehta 10:00: `33333333-0000-0000-0000-000000000002`\n\n**Appointments (SLOT_RESERVED)**\n- Rahul → Dr. Arun Kumar: `eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01`\n- Ananya → Dr. Priya Nair: `eeeeeeee-eeee-eeee-eeee-eeeeeeeeee03`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "patientServiceUrl",
+      "value": "http://localhost:8481",
+      "type": "string",
+      "description": "patient-service base URL"
+    },
+    {
+      "key": "doctorServiceUrl",
+      "value": "http://localhost:8490",
+      "type": "string",
+      "description": "doctor-service base URL"
+    },
+    {
+      "key": "appointmentServiceUrl",
+      "value": "http://localhost:8482",
+      "type": "string",
+      "description": "appointment-service base URL"
+    },
+    {
+      "key": "patientId_Rahul",
+      "value": "11111111-1111-1111-1111-111111111111",
+      "type": "string"
+    },
+    {
+      "key": "patientId_Ananya",
+      "value": "22222222-2222-2222-2222-222222222222",
+      "type": "string"
+    },
+    {
+      "key": "patientId_David",
+      "value": "33333333-3333-3333-3333-333333333333",
+      "type": "string"
+    },
+    {
+      "key": "doctorId_Arun",
+      "value": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "type": "string"
+    },
+    {
+      "key": "doctorId_Priya",
+      "value": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "type": "string"
+    },
+    {
+      "key": "doctorId_Vikram",
+      "value": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "type": "string"
+    },
+    {
+      "key": "doctorId_Sneha",
+      "value": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "type": "string"
+    },
+    {
+      "key": "slotId_Arun_available",
+      "value": "11111111-0000-0000-0000-000000000001",
+      "type": "string",
+      "description": "Dr. Arun Kumar — AVAILABLE slot 09:00-09:30 on 2026-06-01"
+    },
+    {
+      "key": "slotId_Priya_available_1",
+      "value": "22222222-0000-0000-0000-000000000001",
+      "type": "string",
+      "description": "Dr. Priya Nair — AVAILABLE slot 09:00-09:30 on 2026-06-02"
+    },
+    {
+      "key": "slotId_Priya_available_2",
+      "value": "22222222-0000-0000-0000-000000000002",
+      "type": "string",
+      "description": "Dr. Priya Nair — AVAILABLE slot 10:00-10:30 on 2026-06-02"
+    },
+    {
+      "key": "slotId_Arun_reserved",
+      "value": "11111111-0000-0000-0000-000000000002",
+      "type": "string",
+      "description": "Dr. Arun Kumar — RESERVED by appointment eeeeeeee-...ee01"
+    },
+    {
+      "key": "appointmentId_1",
+      "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01",
+      "type": "string",
+      "description": "Rahul Sharma → Dr. Arun Kumar (SLOT_RESERVED)"
+    },
+    {
+      "key": "appointmentId_2",
+      "value": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeee03",
+      "type": "string",
+      "description": "Ananya Rao → Dr. Priya Nair (SLOT_RESERVED)"
+    }
+  ],
+  "item": [
+    {
+      "name": "Patient Service",
+      "description": "CRUD operations for patient management. Base URL: {{patientServiceUrl}} (port 8481)",
+      "item": [
+        {
+          "name": "Create Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Meera\",\n  \"lastName\": \"Reddy\",\n  \"age\": 34,\n  \"gender\": \"FEMALE\",\n  \"email\": \"meera.reddy@example.com\",\n  \"phoneNumber\": \"9876500001\",\n  \"address\": {\n    \"country\": \"India\",\n    \"state\": \"Telangana\",\n    \"houseName\": \"23B, Jubilee Hills\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients"]
+            },
+            "description": "Create a new patient. Gender must be one of: MALE, FEMALE, OTHER.\n\n**Validation rules:**\n- `firstName`: required (not blank)\n- `age`: required\n- `gender`: required (MALE | FEMALE | OTHER)\n- `email`: required, must be valid\n- `address.country`: required"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Patients (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients?page=0&size=10",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0",
+                  "description": "Zero-based page index (default: 0)"
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Number of records per page (default: 10)"
+                }
+              ]
+            },
+            "description": "Returns a paginated list of all patients."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Patient by ID - Rahul Sharma",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients/{{patientId_Rahul}}",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients", "{{patientId_Rahul}}"]
+            },
+            "description": "Fetch patient details by UUID.\n\nSeeded patient: **Rahul Sharma** (`11111111-1111-1111-1111-111111111111`)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Patient by ID - Ananya Rao",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients/{{patientId_Ananya}}",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients", "{{patientId_Ananya}}"]
+            },
+            "description": "Fetch patient details by UUID.\n\nSeeded patient: **Ananya Rao** (`22222222-2222-2222-2222-222222222222`)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Patient by ID - David Thomas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients/{{patientId_David}}",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients", "{{patientId_David}}"]
+            },
+            "description": "Fetch patient details by UUID.\n\nSeeded patient: **David Thomas** (`33333333-3333-3333-3333-333333333333`)"
+          },
+          "response": []
+        },
+        {
+          "name": "Patient Exists",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients/{{patientId_Rahul}}/exists",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients", "{{patientId_Rahul}}", "exists"]
+            },
+            "description": "Check whether a patient with the given UUID exists.\n\nReturns: `{ \"exists\": true | false }`"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Patient",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Rahul\",\n  \"lastName\": \"Sharma\",\n  \"age\": 30,\n  \"gender\": \"MALE\",\n  \"email\": \"rahul.sharma.updated@example.com\",\n  \"phoneNumber\": \"9876500002\",\n  \"address\": {\n    \"country\": \"India\",\n    \"state\": \"Maharashtra\",\n    \"houseName\": \"12A, Andheri West\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{patientServiceUrl}}/api/patients/{{patientId_Rahul}}",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["api", "patients", "{{patientId_Rahul}}"]
+            },
+            "description": "Update an existing patient's details. All fields are optional — only provided fields are updated."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Doctor Service",
+      "description": "Doctor and slot management. Base URL: {{doctorServiceUrl}} (port 8490)",
+      "item": [
+        {
+          "name": "Doctors",
+          "item": [
+            {
+              "name": "Create Doctor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"firstName\": \"Rajesh\",\n  \"lastName\": \"Iyer\",\n  \"specialization\": \"Pediatrics\",\n  \"email\": \"rajesh.iyer@hospital.com\",\n  \"phoneNumber\": \"9876541005\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors"]
+                },
+                "description": "Register a new doctor.\n\n**Validation rules:**\n- `firstName`: required\n- `specialization`: required\n- `email`: required, must be valid and unique"
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Doctors (Paginated)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Returns a paginated list of all doctors."
+              },
+              "response": []
+            },
+            {
+              "name": "Doctor Exists - Dr. Arun Kumar",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Arun}}/exists",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Arun}}", "exists"]
+                },
+                "description": "Check whether a doctor with the given UUID exists.\n\nSeeded doctor: **Dr. Arun Kumar** (Cardiology)"
+              },
+              "response": []
+            },
+            {
+              "name": "Doctor Exists - Dr. Priya Nair",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Priya}}/exists",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Priya}}", "exists"]
+                },
+                "description": "Check whether a doctor with the given UUID exists.\n\nSeeded doctor: **Dr. Priya Nair** (Dermatology)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Doctor Slots",
+          "item": [
+            {
+              "name": "Get All Slots for Doctor - Dr. Arun Kumar",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Arun}}/slots?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Arun}}", "slots"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get all slots (AVAILABLE + RESERVED + CONFIRMED) for a given doctor.\n\nDoctor: **Dr. Arun Kumar** — has 3 seeded slots:\n- `11111111-0000-0000-0000-000000000001` → AVAILABLE\n- `11111111-0000-0000-0000-000000000002` → RESERVED\n- `11111111-0000-0000-0000-000000000003` → CONFIRMED"
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Slots for Doctor - Dr. Priya Nair",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Priya}}/slots?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Priya}}", "slots"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get all slots for Dr. Priya Nair (Dermatology)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Available Slots - Dr. Arun Kumar",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Arun}}/slots/available?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Arun}}", "slots", "available"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get only AVAILABLE slots for Dr. Arun Kumar.\n\nExpected result: slot `11111111-0000-0000-0000-000000000001` (09:00-09:30 on 2026-06-01)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Available Slots - Dr. Priya Nair",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Priya}}/slots/available?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Priya}}", "slots", "available"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get only AVAILABLE slots for Dr. Priya Nair.\n\nExpected result: 2 available slots (09:00 and 10:00 on 2026-06-02)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Available Slots - Dr. Vikram Mehta",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Vikram}}/slots/available?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Vikram}}", "slots", "available"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get only AVAILABLE slots for Dr. Vikram Mehta (Orthopedics)."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Available Slots - Dr. Sneha Patel",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/{{doctorId_Sneha}}/slots/available?page=0&size=10",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "{{doctorId_Sneha}}", "slots", "available"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get only AVAILABLE slots for Dr. Sneha Patel (Neurology)."
+              },
+              "response": []
+            },
+            {
+              "name": "Reserve Slot",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/slots/{{slotId_Arun_available}}?appointmentId={{appointmentId_1}}",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "slots", "{{slotId_Arun_available}}", "reserve"],
+                  "query": [
+                    {
+                      "key": "appointmentId",
+                      "value": "{{appointmentId_1}}",
+                      "description": "UUID of the appointment that is reserving this slot"
+                    }
+                  ]
+                },
+                "description": "Reserve an AVAILABLE slot for a specific appointment.\n\n- Slot must currently be in AVAILABLE status\n- Transitions slot status → RESERVED\n- `appointmentId` is passed as a query parameter"
+              },
+              "response": []
+            },
+            {
+              "name": "Confirm Slot",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/slots/{{slotId_Arun_reserved}}/confirm",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "slots", "{{slotId_Arun_reserved}}", "confirm"]
+                },
+                "description": "Confirm a RESERVED slot.\n\n- Slot must currently be in RESERVED status\n- Transitions slot status → CONFIRMED\n\nUsing seeded RESERVED slot for Dr. Arun Kumar (`11111111-0000-0000-0000-000000000002`)"
+              },
+              "response": []
+            },
+            {
+              "name": "Release Slot",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{doctorServiceUrl}}/api/doctors/slots/{{slotId_Arun_reserved}}/release",
+                  "host": ["{{doctorServiceUrl}}"],
+                  "path": ["api", "doctors", "slots", "{{slotId_Arun_reserved}}", "release"]
+                },
+                "description": "Release a RESERVED slot back to AVAILABLE.\n\n- Clears the `reservedByAppointmentId`\n- Transitions slot status → AVAILABLE\n\nUseful to undo a reservation when an appointment is cancelled."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appointment Service",
+      "description": "Appointment booking and query. Base URL: {{appointmentServiceUrl}} (port 8482).\n\nExposes both a REST API and a GraphQL endpoint (`/graphql`).\nGraphiQL browser UI is available at: http://localhost:8482/graphiql",
+      "item": [
+        {
+          "name": "REST API",
+          "item": [
+            {
+              "name": "Create Appointment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"patientId\": \"33333333-3333-3333-3333-333333333333\",\n  \"doctorId\": \"cccccccc-cccc-cccc-cccc-cccccccccccc\",\n  \"slotId\": \"33333333-0000-0000-0000-000000000002\",\n  \"reason\": \"Follow-up consultation for knee injury\",\n  \"appointmentTime\": \"2026-06-03T10:00:00\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment"]
+                },
+                "description": "Book a new appointment. The service validates patient and doctor existence via gRPC calls to patient-service and doctor-service.\n\n**Fields:**\n- `patientId`: UUID of the patient\n- `doctorId`: UUID of the doctor\n- `slotId`: UUID of an AVAILABLE doctor slot\n- `reason`: reason for visit\n- `appointmentTime`: ISO 8601 datetime (e.g. `2026-06-03T10:00:00`)\n\nThis example books David Thomas with Dr. Vikram Mehta on an available slot."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Appointment by ID - Appointment 1",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment/{{appointmentId_1}}",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment", "{{appointmentId_1}}"]
+                },
+                "description": "Fetch appointment by UUID.\n\nSeeded appointment: **Rahul Sharma → Dr. Arun Kumar** (status: SLOT_RESERVED)\n`eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01`"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Appointment by ID - Appointment 2",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment/{{appointmentId_2}}",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment", "{{appointmentId_2}}"]
+                },
+                "description": "Fetch appointment by UUID.\n\nSeeded appointment: **Ananya Rao → Dr. Priya Nair** (status: SLOT_RESERVED)\n`eeeeeeee-eeee-eeee-eeee-eeeeeeeeee03`"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Appointments by Patient - Rahul Sharma",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment/patient/{{patientId_Rahul}}?page=0&size=10",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment", "patient", "{{patientId_Rahul}}"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get all appointments for patient Rahul Sharma (paginated).\n\nExpected: 1 appointment (with Dr. Arun Kumar, SLOT_RESERVED)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Appointments by Patient - Ananya Rao",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment/patient/{{patientId_Ananya}}?page=0&size=10",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment", "patient", "{{patientId_Ananya}}"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get all appointments for patient Ananya Rao (paginated).\n\nExpected: 1 appointment (with Dr. Priya Nair, SLOT_RESERVED)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Appointments by Doctor - Dr. Arun Kumar",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment/doctor/{{doctorId_Arun}}?page=0&size=10",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment", "doctor", "{{doctorId_Arun}}"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get all appointments for Dr. Arun Kumar (paginated).\n\nExpected: 1 appointment (from Rahul Sharma, SLOT_RESERVED)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Appointments by Doctor - Dr. Priya Nair",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/api/appointment/doctor/{{doctorId_Priya}}?page=0&size=10",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["api", "appointment", "doctor", "{{doctorId_Priya}}"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "0"
+                    },
+                    {
+                      "key": "size",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Get all appointments for Dr. Priya Nair (paginated).\n\nExpected: 1 appointment (from Ananya Rao, SLOT_RESERVED)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GraphQL",
+          "description": "GraphQL API for the appointment service.\nEndpoint: POST {{appointmentServiceUrl}}/graphql\nBrowser UI (GraphiQL): http://localhost:8482/graphiql\n\nAll requests use Content-Type: application/json with the following body shape:\n```\n{\n  \"query\": \"<query or mutation string>\",\n  \"variables\": { ... }\n}\n```",
+          "item": [
+            {
+              "name": "Query — getAppointmentById",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"query GetAppointmentById($appointmentId: ID!) {\\n  getAppointmentById(appointmentId: $appointmentId) {\\n    id\\n    patientId\\n    doctorId\\n    slotId\\n    status\\n    reason\\n    notes\\n    appointmentDateTime\\n    createdAt\\n  }\\n}\",\n  \"variables\": {\n    \"appointmentId\": \"eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/graphql",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["graphql"]
+                },
+                "description": "GraphQL query to fetch a single appointment by its UUID.\n\nQuery variables:\n- `appointmentId`: UUID of the appointment\n\nExample uses seeded appointment 1 (Rahul → Dr. Arun Kumar)"
+              },
+              "response": []
+            },
+            {
+              "name": "Query — getAppointmentByPatient",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"query GetAppointmentByPatient($patientId: ID!, $page: Int, $size: Int) {\\n  getAppointmentByPatient(patientId: $patientId, page: $page, size: $size) {\\n    id\\n    patientId\\n    doctorId\\n    slotId\\n    status\\n    reason\\n    notes\\n    appointmentDateTime\\n    createdAt\\n  }\\n}\",\n  \"variables\": {\n    \"patientId\": \"11111111-1111-1111-1111-111111111111\",\n    \"page\": 0,\n    \"size\": 10\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/graphql",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["graphql"]
+                },
+                "description": "GraphQL query to fetch all appointments for a patient.\n\nQuery variables:\n- `patientId`: UUID of the patient\n- `page`: page index (optional, default 0)\n- `size`: page size (optional, default 10)\n\nExample uses patient Rahul Sharma."
+              },
+              "response": []
+            },
+            {
+              "name": "Query — getAppointmentsByDoctor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"query GetAppointmentsByDoctor($doctorId: ID!, $page: Int, $size: Int) {\\n  getAppointmentsByDoctor(doctorId: $doctorId, page: $page, size: $size) {\\n    id\\n    patientId\\n    doctorId\\n    slotId\\n    status\\n    reason\\n    notes\\n    appointmentDateTime\\n    createdAt\\n  }\\n}\",\n  \"variables\": {\n    \"doctorId\": \"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\n    \"page\": 0,\n    \"size\": 10\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/graphql",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["graphql"]
+                },
+                "description": "GraphQL query to fetch all appointments for a doctor.\n\nQuery variables:\n- `doctorId`: UUID of the doctor\n- `page`: page index (optional)\n- `size`: page size (optional)\n\nExample uses Dr. Arun Kumar."
+              },
+              "response": []
+            },
+            {
+              "name": "Mutation — createAppointment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"mutation CreateAppointment($request: CreateAppointmentInput!) {\\n  createAppointment(request: $request) {\\n    id\\n    patientId\\n    doctorId\\n    slotId\\n    status\\n    reason\\n    notes\\n    appointmentDateTime\\n    createdAt\\n  }\\n}\",\n  \"variables\": {\n    \"request\": {\n      \"patientId\": \"33333333-3333-3333-3333-333333333333\",\n      \"doctorId\": \"cccccccc-cccc-cccc-cccc-cccccccccccc\",\n      \"slotId\": \"33333333-0000-0000-0000-000000000003\",\n      \"reason\": \"Lower back pain assessment\",\n      \"appointmentTime\": \"2026-06-03T11:00:00\"\n    }\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{appointmentServiceUrl}}/graphql",
+                  "host": ["{{appointmentServiceUrl}}"],
+                  "path": ["graphql"]
+                },
+                "description": "GraphQL mutation to create a new appointment.\n\nInput fields:\n- `patientId`: UUID\n- `doctorId`: UUID\n- `slotId`: UUID of an AVAILABLE slot\n- `reason`: reason for the visit\n- `appointmentTime`: ISO 8601 datetime string\n\nThis example books David Thomas with Dr. Vikram Mehta on his available 11:00 slot (2026-06-03)."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health Checks (Actuator)",
+      "description": "Spring Boot Actuator health and info endpoints for all 3 services.\nAll services expose: /actuator/health, /actuator/info, /actuator/metrics, /actuator/prometheus",
+      "item": [
+        {
+          "name": "Patient Service — Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/actuator/health",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Boot Actuator health check for patient-service.\n\nReturns status, DB connection, Redis connection, and disk space."
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor Service — Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{doctorServiceUrl}}/actuator/health",
+              "host": ["{{doctorServiceUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Boot Actuator health check for doctor-service."
+          },
+          "response": []
+        },
+        {
+          "name": "Appointment Service — Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{appointmentServiceUrl}}/actuator/health",
+              "host": ["{{appointmentServiceUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Boot Actuator health check for appointment-service."
+          },
+          "response": []
+        },
+        {
+          "name": "Patient Service — Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{patientServiceUrl}}/actuator/info",
+              "host": ["{{patientServiceUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor Service — Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{doctorServiceUrl}}/actuator/info",
+              "host": ["{{doctorServiceUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Appointment Service — Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{appointmentServiceUrl}}/actuator/info",
+              "host": ["{{appointmentServiceUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
