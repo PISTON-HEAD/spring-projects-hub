@@ -36,34 +36,31 @@ public class AppointmentService {
     @GrpcClient("doctor-service")
     private DoctorGrpcServiceGrpc.DoctorGrpcServiceBlockingStub doctorStub;
 
-
-
     @Transactional
     @CacheEvict(allEntries = true, value = "appointments")
-    public AppointmentResponse createAppointment(CreateAppointmentRequest request)
-    {
+    public AppointmentResponse createAppointment(CreateAppointmentRequest request) {
         PatientResponse patientResponse = patientStub.checkPatientExists(PatientRequest.newBuilder()
-        .setPatientId(request.patientId().toString())
-        .build());
+                .setPatientId(request.patientId().toString())
+                .build());
         if (!patientResponse.getExists()) {
             throw new IllegalArgumentException("Patient not found: " + request.patientId());
         }
 
         DoctorResponse doctorResponse = doctorStub.checkDoctorExists(
-        DoctorRequest.newBuilder()
-            .setDoctorId(request.doctorId().toString())
-            .build());
+                DoctorRequest.newBuilder()
+                        .setDoctorId(request.doctorId().toString())
+                        .build());
         if (!doctorResponse.getExists()) {
             throw new IllegalArgumentException("Doctor not found: " + request.doctorId());
         }
 
         Appointment appointment = Appointment.builder()
-        .patientId(request.patientId())
-        .doctorId(request.doctorId())
-        .slotId(request.slotId())
-        .reason(request.reason())
-        .appointmentDateTime(request.appointmentTime())
-        .build();
+                .patientId(request.patientId())
+                .doctorId(request.doctorId())
+                .slotId(request.slotId())
+                .reason(request.reason())
+                .appointmentDateTime(request.appointmentTime())
+                .build();
 
         Appointment saved = repository.save(appointment);
         return toResponse(saved);
@@ -71,34 +68,31 @@ public class AppointmentService {
 
     @Transactional
     @Cacheable(value = "appointment", key = "#appointmentId")
-    public AppointmentResponse getAppointmentById(UUID appointmentId)
-    {
+    public AppointmentResponse getAppointmentById(UUID appointmentId) {
         Appointment appointment = repository.findById(appointmentId)
-        .orElseThrow(() -> new AppointmentNotFoundExceptions("Appointment not found with id: " + appointmentId));
+                .orElseThrow(
+                        () -> new AppointmentNotFoundExceptions("Appointment not found with id: " + appointmentId));
         return toResponse(appointment);
     }
 
     @Transactional
     @Cacheable(value = "appointments", key = "#patientId + '-' + #page + '-' + #size")
-    public Page<AppointmentResponse> getAppointmentsByPatient(UUID patientId, int page, int size)
-    {
+    public Page<AppointmentResponse> getAppointmentsByPatient(UUID patientId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return repository.findByPatientId(patientId, pageable).map(this::toResponse);   
+        return repository.findByPatientId(patientId, pageable).map(this::toResponse);
     }
 
     @Transactional
     @Cacheable(value = "doctorAppointments", key = "#doctorId + '-' + #page + '-' + #size")
-    public Page<AppointmentResponse> getAppointmentsByDoctor(UUID doctorId, int page, int size)
-    {
+    public Page<AppointmentResponse> getAppointmentsByDoctor(UUID doctorId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return repository.findByDoctorId(doctorId, pageable).map(this::toResponse);
     }
 
     private AppointmentResponse toResponse(Appointment a) {
         return new AppointmentResponse(
-        a.getId(), a.getPatientId(), a.getDoctorId(), a.getSlotId(),
-        a.getStatus(), a.getReason(), a.getNotes(),
-        a.getAppointmentDateTime(), a.getCreatedAt()
-        );
+                a.getId(), a.getPatientId(), a.getDoctorId(), a.getSlotId(),
+                a.getStatus(), a.getReason(), a.getNotes(),
+                a.getAppointmentDateTime(), a.getCreatedAt());
     }
 }
