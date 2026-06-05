@@ -168,6 +168,28 @@
 
         <plugins>
 
+            <!-- Registers the protobuf-generated source directories as compile roots.
+                 The protobuf-maven-plugin auto-adds the 'java' output, but NOT
+                 the 'grpc-java' output from compile-custom, causing compilation errors. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/protobuf/java</source>
+                                <source>${project.build.directory}/generated-sources/protobuf/grpc-java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Spring Boot Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
@@ -189,6 +211,11 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                    <compileSourceRoots>
+                        <compileSourceRoot>${project.build.sourceDirectory}</compileSourceRoot>
+                        <compileSourceRoot>${project.build.directory}/generated-sources/protobuf/java</compileSourceRoot>
+                        <compileSourceRoot>${project.build.directory}/generated-sources/protobuf/grpc-java</compileSourceRoot>
+                    </compileSourceRoots>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
