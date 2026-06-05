@@ -106,7 +106,9 @@ public class AppointmentServiceTest {
   List<Appointment> appointments = List.of(appointment);
   Page<Appointment> appList = new PageImpl<>(appointments);
   when(repository.findByDoctorId(any(UUID.class), any(Pageable.class))).thenReturn(appList);
+  
   Page<AppointmentResponse> saveAppoint = service.getAppointmentsByDoctor(doctorId, 0, 10);
+  
   Assertions.assertEquals(appointments.get(0).getAppointmentDateTime(), saveAppoint.getContent().get(0).appointmentDateTime());
 
   verify(repository).findByDoctorId(any(UUID.class), any(Pageable.class));
