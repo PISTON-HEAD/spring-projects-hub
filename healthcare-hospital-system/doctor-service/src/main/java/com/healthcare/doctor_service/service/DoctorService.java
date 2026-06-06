@@ -72,6 +72,10 @@ public class DoctorService {
   Doctor doctor = repository.findById(doctorId)
     .orElseThrow(() -> new DoctorNotFoundException("Doctor not found with ID: " + doctorId));
 
+  if (doctorSlotsRepository.existsByDoctorIdAndStartTimeAndEndTime(doctorId, request.startTime(), request.endTime())) {
+   throw new IllegalArgumentException("A slot already exists for this doctor at the given time");
+  }
+
   DoctorSlots slot = DoctorSlots.builder()
     .doctor(doctor)
     .startTime(request.startTime())
