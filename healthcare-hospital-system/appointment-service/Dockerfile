@@ -6,7 +6,7 @@ RUN --mount=type=cache,target=/root/.m2 \
  mvn -B dependency:resolve dependency:resolve-plugins
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
- mvn -B clean package -DskipTests
+ mvn -B clean package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
