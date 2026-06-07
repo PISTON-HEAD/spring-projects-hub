@@ -12,11 +12,14 @@ import org.springframework.stereotype.Service;
 import com.healthcare.appointment_service.dto.AppointmentResponse;
 import com.healthcare.appointment_service.dto.CreateAppointmentRequest;
 import com.healthcare.appointment_service.entity.Appointment;
+import com.healthcare.appointment_service.enums.AppointmentStatus;
 import com.healthcare.appointment_service.exceptions.AppointmentNotFoundExceptions;
 import com.healthcare.appointment_service.repository.AppointmentRepository;
 import com.healthcare.doctor_service.grpc.DoctorGrpcServiceGrpc;
 import com.healthcare.doctor_service.grpc.DoctorRequest;
 import com.healthcare.doctor_service.grpc.DoctorResponse;
+import com.healthcare.doctor_service.grpc.ReserveSlotRequest;
+import com.healthcare.doctor_service.grpc.SlotRequest;
 import com.healthcare.patient_service.grpc.PatientGrpcServiceGrpc;
 import com.healthcare.patient_service.grpc.PatientRequest;
 import com.healthcare.patient_service.grpc.PatientResponse;
@@ -63,6 +66,21 @@ public class AppointmentService {
                 .build();
 
         Appointment saved = repository.save(appointment);
+
+        // Reserve slot via gRPC — if it fails, mark CANCELLED and throw
+        try {
+            doctorStub.reserveSlot(ReserveSlotRequest.newBuilder()
+                    .setSlotId(request.slotId().toString())
+                    .setAppointmentId(saved.getId().toString())
+                    .build());
+            saved.setStatus(AppointmentStatus.SLOT_RESERVED);
+            repository.save(saved);
+        } catch (Exception e) {
+            saved.setStatus(AppointmentStatus.CANCELLED);
+            repository.save(saved);
+            throw new IllegalArgumentException("Slot reservation failed: " + e.getMessage());
+        }
+
         return toResponse(saved);
     }
 
@@ -94,5 +112,33 @@ public class AppointmentService {
                 a.getId(), a.getPatientId(), a.getDoctorId(), a.getSlotId(),
                 a.getStatus(), a.getReason(), a.getNotes(),
                 a.getAppointmentDateTime(), a.getCreatedAt());
+    }
+
+    @Transactional
+    @CacheEvict(allEntries = true, value = "appointments")
+    public AppointmentResponse confirmAppointment(UUID appointmentId) {
+        Appointment appointment = repository.findById(appointmentId)
+                .orElseThrow(() -> new AppointmentNotFoundExceptions("Appointment not found: " + appointmentId));
+
+        doctorStub.confirmSlot(SlotRequest.newBuilder()
+                .setSlotId(appointment.getSlotId().toString())
+                .build());
+
+        appointment.setStatus(AppointmentStatus.CONFIRMED);
+        return toResponse(repository.save(appointment));
+    }
+
+    @Transactional
+    @CacheEvict(allEntries = true, value = "appointments")
+    public AppointmentResponse cancelAppointment(UUID appointmentId) {
+        Appointment appointment = repository.findById(appointmentId)
+                .orElseThrow(() -> new AppointmentNotFoundExceptions("Appointment not found: " + appointmentId));
+
+        doctorStub.releaseSlot(SlotRequest.newBuilder()
+                .setSlotId(appointment.getSlotId().toString())
+                .build());
+
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        return toResponse(repository.save(appointment));
     }
 }
