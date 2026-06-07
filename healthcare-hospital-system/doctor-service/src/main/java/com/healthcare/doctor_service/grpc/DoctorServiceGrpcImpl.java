@@ -2,8 +2,12 @@ package com.healthcare.doctor_service.grpc;
 
 import java.util.UUID;
 
+import com.healthcare.doctor_service.entity.DoctorSlots;
+import com.healthcare.doctor_service.enums.SlotStatus;
 import com.healthcare.doctor_service.repository.DoctorRepository;
+import com.healthcare.doctor_service.repository.DoctorSlotRepository;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.AllArgsConstructor;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -35,10 +39,20 @@ public class DoctorServiceGrpcImpl extends DoctorGrpcServiceGrpc.DoctorGrpcServi
             responseObserver.onCompleted();
         } catch (IllegalArgumentException exception) {
             responseObserver.onError(
-                    io.grpc.Status.INVALID_ARGUMENT
+                    Status.INVALID_ARGUMENT
                             .withDescription("Invalid UUID format: " + request.getDoctorId())
-                            .asRuntimeException()
-            );
+                            .asRuntimeException());
+        }
+    }
+
+    @Override
+    public void ReserveSlot(ReserveSlotRequest request, StreamObserver<SlotResponse> responseObserver) {
+        try {
+            UUID slotId = UUID.randomUUID();
+            UUID appointmentId = UUID.fromString(request.getSlotId());
+
+        } catch (Exception e) {
+
         }
     }
 }
