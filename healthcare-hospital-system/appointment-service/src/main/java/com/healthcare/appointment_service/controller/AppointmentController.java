@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
@@ -55,7 +56,14 @@ public class AppointmentController {
         return ResponseEntity.ok(service.getAppointmentsByDoctor(doctorId, page, size));
     }
 
+    @PutMapping("/{id}/confirm")
+    public ResponseEntity<AppointmentResponse> confirmAppointment(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.confirmAppointment(id));
+    }
 
-    
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<AppointmentResponse> cancelAppointment(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.cancelAppointment(id));
+    }
 
 }
