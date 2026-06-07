@@ -7,7 +7,7 @@ option java_multiple_files = true;
 
 service DoctorGrpcService {
     rpc CheckDoctorExists (DoctorRequest) returns (DoctorResponse);
-    rpc ReservceSlot (ReserveSlotRequest) returns (SlotResponse);
+    rpc ReserveSlot (ReserveSlotRequest) returns (SlotResponse);
     rpc ConfirmSlot (SlotRequest) returns (SlotResponse);
     rpc ReleaseSlot (SlotRequest) returns (SlotResponse);
 }
