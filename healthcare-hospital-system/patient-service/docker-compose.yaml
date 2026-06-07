@@ -42,9 +42,11 @@ services:
     networks:
       - patient-database-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 30s
-      retries: 3
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
   
   redis:
     image: redis:alpine

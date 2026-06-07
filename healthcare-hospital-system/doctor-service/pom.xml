@@ -195,6 +195,11 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                    <compileSourceRoots>
+                        <compileSourceRoot>${project.build.sourceDirectory}</compileSourceRoot>
+                        <compileSourceRoot>${project.build.directory}/generated-sources/protobuf/java</compileSourceRoot>
+                        <compileSourceRoot>${project.build.directory}/generated-sources/protobuf/grpc-java</compileSourceRoot>
+                    </compileSourceRoots>
 
                     <annotationProcessorPaths>
                         <path>
@@ -214,6 +219,7 @@
                     <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
+                    <temporaryProtoFileDirectory>${java.io.tmpdir}/protobuf-protoc-dependencies</temporaryProtoFileDirectory>
                 </configuration>
                 <executions>
                     <execution>

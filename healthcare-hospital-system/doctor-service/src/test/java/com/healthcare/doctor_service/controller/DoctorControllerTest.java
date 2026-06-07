@@ -143,4 +143,20 @@ public class DoctorControllerTest {
 
     verify(service).getSlotsByDoctor(doctor.getId(), 0, 10);
   }
+
+  @Test
+  void getAvailableSlotsByDoctor() throws Exception
+  {
+    UUID pid = UUID.randomUUID();
+
+    List<DoctorSlotResponse> doctorSlotReponses = List.of(doctorSlotResponse);
+    Page<DoctorSlotResponse> doctorPages = new PageImpl<>(doctorSlotReponses);
+
+    when(service.getAvailableSlots(doctor.getId(), 0, 10)).thenReturn(doctorPages);
+
+    mockMvc.perform(get("/api/doctors/"+doctor.getId()+"/slots/available"))
+    .andExpect(status().isOk());
+
+    verify(service).getAvailableSlots(doctor.getId(),0,10);
+  }
 }
