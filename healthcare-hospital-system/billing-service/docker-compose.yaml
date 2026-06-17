@@ -1,0 +1,69 @@
+services:
+  billing-service:
+    build: .
+    container_name: billing-service
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/billing_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+      - "8483:8483"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - billing-service-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8483/actuator/health || exit 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 3
+      start_period: 15s
+
+  mysql:
+    image: mysql:8.0
+    container_name: billing-database
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: billing_db
+      MYSQL_USER: billing_user
+      MYSQL_PASSWORD: billing_pass
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - billing-service-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  redis:
+    image: redis:alpine
+    container_name: billing-service-redis
+    ports:
+      - "6374:6379"
+    networks:
+      - billing-service-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  billing-service-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
