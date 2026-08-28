@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DocuMind — RAG Assistant</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>" />
+</head>
+<body>
+<header class="app-header">
+    <div class="header-left">
+        <button class="nav-back hidden" id="navBack" title="Go back" aria-label="Go back">←</button>
+        <div class="brand" id="brandHome" title="Home">
+            <span class="brand-logo">🧠</span>
+            <span class="brand-name">DocuMind</span>
+        </div>
+    </div>
+    <div class="session-badge hidden" id="sessionBadge">
+        <span id="sessionLabel"></span>
+        <span class="role-chip hidden" id="roleChip"></span>
+        <button class="btn-ghost" id="logoutBtn">Sign out</button>
+    </div>
+</header>
+
+<main class="app-main">
+
+    <!-- ══ Landing: choose mode ══ -->
+    <section id="view-landing" class="view">
+        <div class="hero">
+            <h1>Ask your documents anything.</h1>
+            <p class="subtitle">Upload documents, then chat with them. Follow-up questions supported.</p>
+        </div>
+        <div class="choice-grid">
+            <button class="choice-card" id="chooseOrg">
+                <span class="choice-icon">🏢</span>
+                <span class="choice-title">Organization</span>
+                <span class="choice-desc">Sign in with your organization credentials and query your shared knowledge base.</span>
+            </button>
+            <button class="choice-card" id="chooseIndividual">
+                <span class="choice-icon">👤</span>
+                <span class="choice-title">Individual</span>
+                <span class="choice-desc">Start instantly. Upload your own documents to a private workspace and ask away.</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ══ Organization login ══ -->
+    <section id="view-login" class="view hidden">
+        <div class="login-card">
+            <button class="back-link" data-back="landing">← Back</button>
+            <h2>Organization sign in</h2>
+            <p class="muted">Members of the same organization share one knowledge base.</p>
+            <form id="loginForm" autocomplete="off">
+                <label>Username
+                    <input type="text" id="username" required placeholder="e.g. acme" />
+                </label>
+                <label>Password
+                    <input type="password" id="password" required placeholder="••••••••" />
+                </label>
+                <button type="submit" class="btn-primary" id="loginSubmit">Sign in</button>
+                <p class="form-error hidden" id="loginError"></p>
+            </form>
+            <details class="hint">
+                <summary>Demo accounts</summary>
+                <ul>
+                    <li><strong>Acme Corporation</strong><br />
+                        Admin (can upload): <code>acme-admin</code> / <code>acme-admin123</code><br />
+                        Member (read-only): <code>acme</code> / <code>acme123</code></li>
+                    <li><strong>Globex Industries</strong><br />
+                        Admin (can upload): <code>globex-admin</code> / <code>globex-admin123</code><br />
+                        Member (read-only): <code>globex</code> / <code>globex123</code></li>
+                </ul>
+            </details>
+        </div>
+    </section>
+
+    <!-- ══ Dashboard ══ -->
+    <section id="view-dashboard" class="view hidden">
+        <div class="dashboard">
+            <!-- Left: documents -->
+            <aside class="panel documents-panel">
+                <h3><span id="docsTitle">Documents</span> <span class="scope-pill" id="scopePill"></span></h3>
+
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" id="fileInput" hidden
+                           accept=".pdf,.txt,.docx,.doc,.md,.html,.csv,.pptx,.rtf" />
+                    <span class="upload-icon">⬆️</span>
+                    <p>Drop a file here or <button class="link-btn" id="browseBtn" type="button">browse</button></p>
+                    <small class="muted">PDF, DOCX, TXT, MD, HTML, CSV… up to 10&nbsp;MB</small>
+                </div>
+                <div class="upload-locked hidden" id="uploadLocked">
+                    <span class="lock-icon">🔒</span>
+                    <p>This library is curated by an administrator.</p>
+                    <small class="muted">You can ask questions about any document below.</small>
+                </div>
+                <div class="upload-status hidden" id="uploadStatus"></div>
+
+                <ul class="doc-list" id="docList"></ul>
+                <p class="empty-note" id="docEmpty">No documents yet. Upload one to get started.</p>
+            </aside>
+
+            <!-- Right: chat -->
+            <section class="panel chat-panel">
+                <div class="chat-toolbar">
+                    <label class="scope-select">Ask about
+                        <select id="docScopeSelect">
+                            <option value="ALL">All documents</option>
+                        </select>
+                    </label>
+                    <button class="btn-ghost" id="newChatBtn" title="Start a fresh conversation">↺ New chat</button>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-placeholder" id="chatPlaceholder">
+                        <span class="placeholder-icon">💬</span>
+                        <p>Upload a document, then ask a question about it.</p>
+                    </div>
+                </div>
+
+                <form class="chat-input" id="chatForm">
+                    <input type="text" id="questionInput" placeholder="Ask a question…" autocomplete="off" disabled />
+                    <button type="submit" class="btn-primary" id="sendBtn" disabled>Send</button>
+                </form>
+            </section>
+        </div>
+    </section>
+
+</main>
+
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <h3 id="confirmTitle">Remove document?</h3>
+        <p id="confirmMessage"></p>
+        <div class="modal-actions">
+            <button class="btn-ghost" id="confirmCancel">Cancel</button>
+            <button class="btn-danger" id="confirmOk">Remove</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package com.ragapp.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ragapp.config.OnnxEmbeddingModel;
 import com.ragapp.dto.LoginRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
@@ -28,13 +29,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
-        "spring.ai.openai.api-key=test-key-does-not-call-openai"
+        "spring.ai.openai.api-key=test-key-does-not-call-openai",
+        "app.rag.seed.enabled=false",
+        "app.rag.persistence.enabled=false"
 })
 class AuthControllerIntegrationTest {
 
-    // Mock AI beans so the context loads without touching OpenAI
+    // Mock AI beans so the context loads without any network calls
     @MockBean EmbeddingModel embeddingModel;
     @MockBean ChatModel chatModel;
+    // Prevents the real ONNX model download during context startup
+    @MockBean OnnxEmbeddingModel onnxEmbeddingModel;
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,16 +67,19 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /auth/login with valid user credentials returns JWT token")
-    void login_withValidUserCredentials_returnsToken() throws Exception {
-        LoginRequest req = new LoginRequest("user", "user123");
+    @DisplayName("POST /auth/login with valid organization credentials returns JWT token + org info")
+    void login_withValidOrgCredentials_returnsToken() throws Exception {
+        LoginRequest req = new LoginRequest("acme", "acme123");
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.username").value("user"));
+                .andExpect(jsonPath("$.username").value("acme"))
+                .andExpect(jsonPath("$.mode").value("ORGANIZATION"))
+                .andExpect(jsonPath("$.orgId").value("acme"))
+                .andExpect(jsonPath("$.orgName").value("Acme Corporation"));
     }
 
     // ── Invalid credentials ───────────────────────────────────────────────────
@@ -126,9 +134,9 @@ class AuthControllerIntegrationTest {
     // ── Protected endpoint without token ─────────────────────────────────────
 
     @Test
-    @DisplayName("GET /documents without Authorization header returns 401/403")
+    @DisplayName("POST /api/documents/{id}/query without Authorization header returns 401/403")
     void protectedEndpoint_withoutToken_returns401or403() throws Exception {
-        mockMvc.perform(post("/documents/some-id/query")
+        mockMvc.perform(post("/api/documents/some-id/query")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"question\":\"What is this?\"}"))
                 .andExpect(result ->
