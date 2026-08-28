@@ -2,6 +2,7 @@ package com.ragapp.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ragapp.config.OnnxEmbeddingModel;
 import com.ragapp.dto.LoginRequest;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
@@ -29,13 +30,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
-        "spring.ai.openai.api-key=test-key-does-not-call-openai"
+        "spring.ai.openai.api-key=test-key-does-not-call-openai",
+        "app.rag.seed.enabled=false",
+        "app.rag.persistence.enabled=false"
 })
 class JwtRoundTripTest {
 
-    // Mock AI beans so the context loads without touching OpenAI
+    // Mock AI beans so the context loads without any network calls
     @MockBean EmbeddingModel embeddingModel;
     @MockBean ChatModel chatModel;
+    // Prevents the real ONNX model download during context startup
+    @MockBean OnnxEmbeddingModel onnxEmbeddingModel;
 
     @Autowired
     private MockMvc mockMvc;
@@ -64,7 +69,7 @@ class JwtRoundTripTest {
         assertThat(token.split("\\.")).hasSize(3); // valid JWT structure
 
         // Use the token to hit a protected endpoint
-        mockMvc.perform(get("/documents")
+        mockMvc.perform(get("/api/documents")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
@@ -72,12 +77,12 @@ class JwtRoundTripTest {
     @Test
     @DisplayName("Tampered token → 401/403 on protected endpoint")
     void tamperedToken_isRejected() throws Exception {
-        String validToken = loginAndGetToken("user", "user123");
+        String validToken = loginAndGetToken("acme", "acme123");
         // Corrupt the signature part (last segment)
         String[] parts = validToken.split("\\.");
         String tampered = parts[0] + "." + parts[1] + ".invalidsignature";
 
-        mockMvc.perform(get("/documents")
+        mockMvc.perform(get("/api/documents")
                         .header("Authorization", "Bearer " + tampered))
                 .andExpect(result ->
                         assertThat(result.getResponse().getStatus()).isIn(401, 403));
@@ -86,7 +91,7 @@ class JwtRoundTripTest {
     @Test
     @DisplayName("No Authorization header → 401/403 on protected endpoint")
     void noToken_isRejected() throws Exception {
-        mockMvc.perform(get("/documents"))
+        mockMvc.perform(get("/api/documents"))
                 .andExpect(result ->
                         assertThat(result.getResponse().getStatus()).isIn(401, 403));
     }
@@ -94,7 +99,7 @@ class JwtRoundTripTest {
     @Test
     @DisplayName("Malformed Bearer value → 401/403 on protected endpoint")
     void malformedBearer_isRejected() throws Exception {
-        mockMvc.perform(get("/documents")
+        mockMvc.perform(get("/api/documents")
                         .header("Authorization", "Bearer this.is.garbage"))
                 .andExpect(result ->
                         assertThat(result.getResponse().getStatus()).isIn(401, 403));

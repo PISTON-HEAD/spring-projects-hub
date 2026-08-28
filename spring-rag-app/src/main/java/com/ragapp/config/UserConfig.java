@@ -26,19 +26,40 @@ public class UserConfig {
 
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+        // Platform administrator (actuator access, not tied to a tenant org).
         var admin = User.builder()
                 .username("admin")
                 .password(passwordEncoder.encode("admin123"))
                 .roles("ADMIN")
                 .build();
 
-        var user = User.builder()
-                .username("user")
-                .password(passwordEncoder.encode("user123"))
-                .roles("USER")
+        // Organization members share one knowledge base (see OrgAccountService).
+        // ORG_ADMIN can upload documents; ORG_MEMBER is read-only (ask questions only).
+        var acmeAdmin = User.builder()
+                .username("acme-admin")
+                .password(passwordEncoder.encode("acme-admin123"))
+                .roles("ORG_ADMIN")
                 .build();
 
-        return new InMemoryUserDetailsManager(admin, user);
+        var acme = User.builder()
+                .username("acme")
+                .password(passwordEncoder.encode("acme123"))
+                .roles("ORG_MEMBER")
+                .build();
+
+        var globexAdmin = User.builder()
+                .username("globex-admin")
+                .password(passwordEncoder.encode("globex-admin123"))
+                .roles("ORG_ADMIN")
+                .build();
+
+        var globex = User.builder()
+                .username("globex")
+                .password(passwordEncoder.encode("globex123"))
+                .roles("ORG_MEMBER")
+                .build();
+
+        return new InMemoryUserDetailsManager(admin, acmeAdmin, acme, globexAdmin, globex);
     }
 
     @Bean

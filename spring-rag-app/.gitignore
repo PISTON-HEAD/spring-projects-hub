@@ -1,0 +1,19 @@
+# Build output
+target/
+
+# Runtime persistence (uploaded documents + vector store)
+data/
+
+# Tool-generated logs
+.github/java-upgrade/
+
+# Local run helpers / secrets (never commit)
+run-local.ps1
+*.local.ps1
+gemini.key
+.env
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store

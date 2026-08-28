@@ -2,6 +2,7 @@ package com.ragapp.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -35,9 +36,16 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/favicon.ico").permitAll()
+                        .requestMatchers("/assets/**", "/css/**", "/js/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        // Only org admins (or individuals in their own workspace) may add or remove documents.
+                        .requestMatchers(HttpMethod.POST, "/api/documents/upload")
+                            .hasAnyRole("INDIVIDUAL", "ORG_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/documents/*")
+                            .hasAnyRole("INDIVIDUAL", "ORG_ADMIN", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

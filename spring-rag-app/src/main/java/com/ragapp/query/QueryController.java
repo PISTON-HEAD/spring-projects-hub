@@ -1,6 +1,7 @@
 package com.ragapp.query;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ragapp.auth.RagUserPrincipal;
 import com.ragapp.dto.QueryRequest;
 import com.ragapp.dto.QueryResponse;
 
@@ -24,17 +26,18 @@ public class QueryController {
     }
 
     /**
-     * Query a specific document by its documentId.
-     * Only chunks from that document are searched.
+     * Query a specific document by its documentId, restricted to the caller's scope.
+     * Only chunks from that document (within the caller's org/individual scope) are searched.
      * Pass X-Session-Id header to maintain conversation history across requests.
      */
     @PostMapping("/{documentId}/query")
     public ResponseEntity<QueryResponse> queryDocument(
             @PathVariable String documentId,
             @Valid @RequestBody QueryRequest request,
-            @RequestHeader(value = "X-Session-Id", required = false) String sessionId
+            @RequestHeader(value = "X-Session-Id", required = false) String sessionId,
+            @AuthenticationPrincipal RagUserPrincipal principal
     ) {
-        QueryResponse response = queryService.query(documentId, request, sessionId);
+        QueryResponse response = queryService.query(principal.scopeKey(), documentId, request, sessionId);
         return ResponseEntity.ok(response);
     }
 }

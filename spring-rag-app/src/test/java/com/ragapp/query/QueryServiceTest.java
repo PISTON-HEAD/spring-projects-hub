@@ -34,6 +34,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class QueryServiceTest {
 
+    private static final String SCOPE = "ind:test-workspace";
+
     @Mock
     private SimpleVectorStore vectorStore;
 
@@ -52,8 +54,9 @@ class QueryServiceTest {
     void setUp() {
         queryService = new QueryService(vectorStore, chatModel, documentService, chatHistoryService);
         ReflectionTestUtils.setField(queryService, "topK", 4);
-        // Default: every session starts with empty history
-        when(chatHistoryService.getHistory(any())).thenReturn(List.of());
+        ReflectionTestUtils.setField(queryService, "geminiApiKey", "test-key"); // enable the generation path
+        // Default: every session starts with empty history (lenient — not every test queries)
+        lenient().when(chatHistoryService.getHistory(any())).thenReturn(List.of());
     }
 
     // ── Successful query ───────────────────────────────────────────────────────
@@ -65,8 +68,8 @@ class QueryServiceTest {
         String question = "What is RAG?";
         String expectedAnswer = "RAG stands for Retrieval-Augmented Generation.";
 
-        // Document service confirms the document exists
-        when(documentService.documentExists(docId)).thenReturn(true);
+        // Document service confirms the document exists in this scope
+        when(documentService.documentExists(SCOPE, docId)).thenReturn(true);
 
         // Vector store returns one matching chunk
         Document chunk = new Document("RAG is a technique that combines retrieval with generation.",
@@ -80,7 +83,7 @@ class QueryServiceTest {
                 .thenReturn(expectedAnswer);
         ReflectionTestUtils.setField(spyService, "chatClient", mockChatClient);
 
-        QueryResponse response = spyService.query(docId, new QueryRequest(question), null);
+        QueryResponse response = spyService.query(SCOPE, docId, new QueryRequest(question), null);
 
         assertThat(response.answer()).isEqualTo(expectedAnswer);
         assertThat(response.question()).isEqualTo(question);
@@ -93,7 +96,7 @@ class QueryServiceTest {
     @DisplayName("query: calls vectorStore.similaritySearch with topK=4")
     void query_callsVectorStoreWithCorrectTopK() {
         String docId = "doc-456";
-        when(documentService.documentExists(docId)).thenReturn(true);
+        when(documentService.documentExists(SCOPE, docId)).thenReturn(true);
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
 
         QueryService spyService = spy(queryService);
@@ -102,7 +105,7 @@ class QueryServiceTest {
                 .thenReturn("An answer");
         ReflectionTestUtils.setField(spyService, "chatClient", mockChatClient);
 
-        spyService.query(docId, new QueryRequest("some question"), null);
+        spyService.query(SCOPE, docId, new QueryRequest("some question"), null);
 
         // Verify vector store was called exactly once
         verify(vectorStore, times(1)).similaritySearch(any(SearchRequest.class));
@@ -112,7 +115,7 @@ class QueryServiceTest {
     @DisplayName("query: returns empty relevantChunks when no similar documents found")
     void query_withNoMatchingChunks_returnsEmptyChunks() {
         String docId = "doc-789";
-        when(documentService.documentExists(docId)).thenReturn(true);
+        when(documentService.documentExists(SCOPE, docId)).thenReturn(true);
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
 
         QueryService spyService = spy(queryService);
@@ -121,7 +124,7 @@ class QueryServiceTest {
                 .thenReturn("I don't have enough context to answer.");
         ReflectionTestUtils.setField(spyService, "chatClient", mockChatClient);
 
-        QueryResponse response = spyService.query(docId, new QueryRequest("question"), null);
+        QueryResponse response = spyService.query(SCOPE, docId, new QueryRequest("question"), null);
 
         assertThat(response.relevantChunks()).isEmpty();
     }
@@ -129,33 +132,33 @@ class QueryServiceTest {
     // ── Document not found ────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("query: throws IllegalArgumentException when document does not exist")
+    @DisplayName("query: throws IllegalArgumentException when document does not exist in scope")
     void query_withNonExistentDocument_throwsIllegalArgumentException() {
-        when(documentService.documentExists("missing-doc")).thenReturn(false);
+        when(documentService.documentExists(SCOPE, "missing-doc")).thenReturn(false);
 
         assertThatThrownBy(() ->
-                queryService.query("missing-doc", new QueryRequest("what is this?"), null)
+                queryService.query(SCOPE, "missing-doc", new QueryRequest("what is this?"), null)
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("missing-doc");
     }
 
     @Test
-    @DisplayName("query: does NOT call vectorStore if document does not exist")
+    @DisplayName("query: does NOT call vectorStore if document does not exist in scope")
     void query_withNonExistentDocument_neverCallsVectorStore() {
-        when(documentService.documentExists("ghost")).thenReturn(false);
+        when(documentService.documentExists(SCOPE, "ghost")).thenReturn(false);
 
         try {
-            queryService.query("ghost", new QueryRequest("question"), null);
+            queryService.query(SCOPE, "ghost", new QueryRequest("question"), null);
         } catch (IllegalArgumentException ignored) {}
 
         verifyNoInteractions(vectorStore);
     }
 
-    // ── Cross-document (global) query ─────────────────────────────────────────
+    // ── Cross-document (scope-wide) query ─────────────────────────────────────
 
     @Test
-    @DisplayName("queryAllDocuments: searches without a filter and returns ALL_DOCUMENTS scope")
+    @DisplayName("queryAllDocuments: searches the scope and returns ALL_DOCUMENTS label")
     void queryAllDocuments_returnsAllDocumentsScope() {
         when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
 
@@ -165,7 +168,7 @@ class QueryServiceTest {
                 .thenReturn("Cross-document answer.");
         ReflectionTestUtils.setField(spyService, "chatClient", mockChatClient);
 
-        QueryResponse response = spyService.queryAllDocuments(new QueryRequest("general question"), null);
+        QueryResponse response = spyService.queryAllDocuments(SCOPE, new QueryRequest("general question"), null);
 
         assertThat(response.documentId()).isEqualTo("ALL_DOCUMENTS");
         assertThat(response.answer()).isEqualTo("Cross-document answer.");
@@ -183,7 +186,7 @@ class QueryServiceTest {
                 .thenReturn("Answer.");
         ReflectionTestUtils.setField(spyService, "chatClient", mockChatClient);
 
-        spyService.queryAllDocuments(new QueryRequest("something"), null);
+        spyService.queryAllDocuments(SCOPE, new QueryRequest("something"), null);
 
         verifyNoInteractions(documentService);
     }
