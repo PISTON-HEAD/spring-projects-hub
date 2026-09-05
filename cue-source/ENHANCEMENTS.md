@@ -51,6 +51,247 @@ Our enhancements reuse all of the above rather than replacing any of it.
 
 ---
 
+## 2A. The complete application working — startup to shutdown
+
+This section traces the **entire runtime**, end to end, so you can follow a single
+launch from process start to quit. cue is an Electron app, so everything below
+happens across **two processes**:
+
+- **Main process** (`main.js`) — Node.js with full OS access: windows, global
+  shortcuts, screenshots, audio routing, STT, LLM calls, settings file.
+- **Renderer process** (`renderer/`) — a sandboxed Chromium page (the glass UI):
+  DOM, microphone/loopback capture, and word-by-word answer rendering.
+
+They talk **only** through `preload.js`, which uses `contextBridge` to expose a
+small, allow-listed `window.cue.*` API. The renderer has `nodeIntegration:false`
+and `contextIsolation:true`, so it can never touch Node or a `src/` module
+directly.
+
+### A.1 Cold start & lifecycle
+
+```mermaid
+sequenceDiagram
+  participant OS
+  participant Main as main.js
+  participant Perm as permissions.html
+  participant Win as Overlay window
+  participant Rend as renderer.js
+
+  OS->>Main: launch (electron .)
+  Note over Main: (macOS only) append Chromium switches<br/>for system-audio loopback
+  Main->>Main: app.whenReady()
+  Main->>Main: app.setName('cue'); process.title='cue'
+  alt macOS and permissions missing
+    Main->>Perm: createPermissionsWindow() (gate)
+    Perm-->>Main: permissions:continue
+  end
+  Main->>Main: launchApp() — start AppLink + Whisper mgr
+  Main->>Win: createWindow() (frameless, transparent, always-on-top)
+  Win->>Win: setContentProtection(true) — hide from capture
+  Win->>Rend: loadFile(index.html)
+  Rend->>Main: cue.settingsGet()
+  Main-->>Rend: settings (cue-data.json merged with defaults)
+  Rend->>Rend: fillSettings(), wire buttons, render tutorial
+  Main->>Main: registerShortcuts()
+```
+
+**Key startup facts (from `main.js`):**
+- On macOS, before `app.whenReady`, Chromium switches
+  (`MacLoopbackAudioForScreenShare`, `MacSckSystemAudioLoopbackOverride`) are
+  enabled so `getDisplayMedia` can capture system audio.
+- The app names itself **`cue`** (the Microsoft-process masquerade was removed).
+- The Whisper model manager and the **AppLink** named-pipe server are started in
+  `launchApp()`.
+
+### A.2 Permissions gate
+
+- **macOS** needs two grants — **Microphone** and **Screen Recording**. On first
+  launch a dedicated `permissions.html` window blocks until both are granted
+  (`permissions:check` / `permissions:request` / `permissions:continue`).
+  Screen access is verified robustly: `getMediaAccessStatus('screen')` is
+  unreliable, so cue also attempts a real capture and inspects the thumbnail for
+  non-zero pixels.
+- **Windows** needs only the **microphone**; screenshots and loopback audio need
+  no grant.
+
+### A.3 The overlay window
+
+`createWindow()` builds a `BrowserWindow` that is `frame:false`,
+`transparent:true`, `alwaysOnTop:true`, `skipTaskbar:true`, `resizable:true`,
+positioned from saved `windowX/windowY` (clamped to the work area). Then:
+
+- **Invisibility** — `setContentProtection(true)` maps to
+  `WDA_EXCLUDEFROMCAPTURE` (Windows 19041+) / `NSWindowSharingNone` (macOS).
+  `CUE_NO_PROTECT=1` disables it for debugging.
+- **Out of the way** — on Windows `type:'toolbar'` removes it from Alt-Tab and
+  the taskbar; `setAlwaysOnTop(true,'screen-saver')` and
+  `setVisibleOnAllWorkspaces` keep it above full-screen apps.
+- **Click-through** — the renderer marks empty regions click-through via
+  `setIgnoreMouseEvents` (`mouse:ignore`), so gaps around the panel never block
+  the app behind it.
+- Window moves are debounced and persisted to `cue-data.json`.
+
+### A.4 Global shortcuts (`registerShortcuts`)
+
+| Shortcut (Win / mac) | Action |
+| --- | --- |
+| `Ctrl/⌘ + Enter` | `assist` — do the smart thing |
+| `Ctrl/⌘ + Shift + Enter` | `say` — what to say next |
+| `Ctrl/⌘ + H` | `leetcode` — solve on-screen coding problem |
+| `Ctrl/⌘ + Shift + /` | hide / collapse the panel |
+| `Ctrl/⌘ + Shift + X` | quit |
+
+Registration return values are tracked in `shortcutState` so cue can report a
+shortcut another app has already claimed.
+
+### A.5 Listening — the audio capture pipeline
+
+This is the heart of the app. Toggling the **▢** button starts capture. Audio is
+captured **in the renderer** (so it uses cue's own permission grant) and routed
+to the main process as raw 16 kHz mono PCM.
+
+```mermaid
+flowchart TD
+  Click[User clicks ▢ listen] --> R1[renderer: startMic + startSystemAudio]
+  Click --> T[cue.captureToggle -> main.setCapturing]
+
+  subgraph Renderer capture
+    R1 --> MIC[getUserMedia 16kHz mono<br/>echo-cancel/noise/AGC]
+    R1 --> SYS[getDisplayMedia loopback<br/>drop video, keep audio]
+    MIC --> WM[AudioWorklet 'cue-audio-processor']
+    SYS --> WS[AudioWorklet]
+    WM -->|Int16 PCM| PM[cue.micPcm -> 'mic:pcm']
+    WS -->|Int16 PCM| PS[cue.systemPcm -> 'system:pcm']
+  end
+
+  PM --> RA[main.routeAudio 'you']
+  PS --> RA2[main.routeAudio 'them']
+
+  subgraph Main routing
+    RA --> VAD[AdaptiveVAD -> vad:state]
+    RA --> RING[300ms ring buffer pre-roll]
+    RA --> MODE{STT mode?}
+    MODE -->|local| LW[whisper-server sidecar]
+    MODE -->|streaming| WSK[WebSocket STT sendAudio]
+    MODE -->|batch| BUF[accumulate -> 900ms flush]
+  end
+
+  LW --> TR[transcript turn]
+  WSK --> TR
+  BUF --> TR
+  TR --> UI[renderer: 'transcript' / stt:final -> sidebar + auto-fill]
+```
+
+**Three STT modes** (`setCapturing` picks one):
+
+1. **Local** (`sttProvider:'local'`) — `startLocalWhisper` boots a persistent
+   `whisper-server` sidecar on `127.0.0.1`; audio never leaves the machine and is
+   never written to disk. VAD segments utterances; both channels share one
+   serialized inference queue.
+2. **Streaming** — `initStreamingSTT` opens a WebSocket per channel
+   (Deepgram / OpenAI Realtime); `onInterim` emits `stt:interim` (live partial
+   text), `onTranscript` emits `stt:final`.
+3. **Batch** (fallback) — `startFlushLoop` runs every **900 ms**; `flushChannel`
+   concatenates buffered PCM, discards anything under ~0.12 s or below the RMS
+   silence gate, calls `createSTT(settings).transcribe(pcm)`, and publishes the
+   text.
+
+Every finalized utterance becomes a `{ channel:'you'|'them', text, ts }` turn,
+pushed into the `transcript[]` array (capped at 200 turns ≈ 30–40 min) and sent
+to the renderer, which shows it in the history sidebar and can auto-fill the
+input box. The **"You"** channel is your mic; the **"Them"** channel is the
+meeting audio — keeping them separate is what powers *"What should I say?"*.
+
+> Platform note: `getDisplayMedia` loopback returns an audio track on Windows out
+> of the box; on macOS it needs 14.4+ (ScreenCaptureKit), otherwise the "Them"
+> channel is silent while screen + mic keep working.
+
+### A.6 Answering — from trigger to streamed reply
+
+Any of three triggers — a global shortcut, an action button (`data-mode`), or a
+typed question — calls `cue.ask({ mode, text })`, which sends the `ask` IPC to
+`runFeature(mode, userText)` in main:
+
+```mermaid
+sequenceDiagram
+  participant Rend as renderer
+  participant Main as runFeature
+  participant Ctx as interview-context.js
+  participant P as prompts.js
+  participant Cap as screen.js
+  participant LLM as provider
+  participant U as usage.js
+
+  Rend->>Main: cue.ask({mode,text})
+  Main->>Main: guard state.busy; createLLM(settings)
+  Main->>Rend: llm:start {userBubble, small, category}
+  opt mode needs the screen
+    Main->>Cap: captureScreenshot() -> PNG data URL
+  end
+  Main->>Ctx: buildInterviewContext(settings, mode, transcript)
+  Main->>P: def.buildSystem(context, aiRules, responseLanguage)
+  Main->>P: def.build({transcript, userText, lastSolution})
+  Main->>LLM: llm.stream({system, turns, imageDataUrl, onToken})
+  loop each token
+    LLM-->>Main: token
+    Main->>Rend: llm:token {text}
+    Rend->>Rend: appendToken (markdown, word fade-in)
+  end
+  Main->>U: usageMeter.record(...) ; emit usage:update
+  Main->>Rend: llm:done
+  Rend->>Rend: finalizeAi()
+```
+
+**Details:**
+- A **watchdog** (`STREAM_INACTIVITY_MS` = 25 s) aborts a stalled stream so
+  `state.busy` can't wedge the app.
+- For `leetcode` / `codeFollowup`, the full response is stored in
+  `lastLeetcodeSolution` so a follow-up can refine the previous code.
+- After completion, the **cost meter** records the request and emits
+  `usage:update` (see §6.1).
+
+### A.7 Screenshot capture (`src/screen.js`)
+
+`captureScreenshot()` uses `desktopCapturer.getSources({ types:['screen'] })` at
+full resolution (scaled by `scaleFactor`), prefers the primary display, and
+returns a `data:image/png;base64,…` URL. It is only invoked for modes whose
+definition sets `needsScreen:true` (`assist`, `ask`, `leetcode`, `codeFollowup`),
+and the URL is passed to the model as `imageDataUrl` for vision.
+
+### A.8 Context building (`src/interview-context.js`)
+
+`detectCategory(transcript)` inspects the **last five "Them" turns** and matches
+them against regex banks to classify the moment as `behavioral`, `motivation`,
+`situational`, `experience`, `compensation`, `technical`, or `general`.
+`buildInterviewContext` then injects **only the relevant** prep fields (résumé
+sized by category, JD, STAR stories, salary target, etc.), keeping the prompt
+tight. `leetcode` gets no personal context at all.
+
+### A.9 Settings & persistence (`src/store.js`)
+
+Settings live in a single JSON file, `cue-data.json`, under Electron's
+`userData` directory — no native modules, so `npm install` stays clean.
+`getSettings()` deep-merges the file over defaults; `setSettings(patch)` merges
+and saves. Our additions (`responseLanguage`, `profiles`, `activeProfile`,
+`sessionHistory`) live here too; profiles and history replace their slice
+wholesale so deletions actually persist.
+
+### A.10 AppLink (the "Iris" bridge)
+
+cue runs a local **named-pipe** server (`src/applink.js`) that lets a companion
+tool ask "what is cue doing?" Every caller must pass a **consent gate**
+(`applink:consent-request` / `applink:consent-response`), consent is remembered
+per caller, and it can be revoked in Settings. No network is involved.
+
+### A.11 Shutdown
+
+Stopping capture ends new audio immediately, drains the current STT queue for a
+bounded time, and terminates the Whisper sidecar. `Ctrl/⌘+Shift+X` (or
+`app:quit`) exits. There is deliberately no dock/taskbar icon, so the shortcut is
+the primary quit path.
+
+---
+
 ## 3. What we built (feature catalog)
 
 | # | Feature | What it does | Core module |
@@ -332,8 +573,9 @@ sessions. We removed this at every layer:
   removed from `package.json`.
 - **`scripts/apply-icon.js` / `build-icon.js`** stole Microsoft Edge's icon →
   **neutralised**.
-- **`main.js`** set `app.setName('MicrosoftEdgeUpdate')` / `process.title` →
-  now uses the app's real name, `cue`.
+- **`main.js`** set `app.setName('MicrosoftEdgeUpdate')`, `process.title`, and
+  the window title (`win.setTitle('Microsoft Edge Update')`) → all now use the
+  app's real name, `cue`.
 
 Impersonating a trusted Microsoft system process is an anti-detection technique;
 removing it is a prerequisite for shipping this as an honest product. The
