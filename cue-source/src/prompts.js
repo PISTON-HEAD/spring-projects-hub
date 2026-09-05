@@ -23,8 +23,20 @@ function applyRules(prompt, aiRules, mode) {
   return appendAiRules(prompt, aiRules);
 }
 
-const BASE_RULES =
-  'Always respond in clear, natural English. Never switch to Hindi or any other language unless the user explicitly asks for it. ';
+// Response-language directive. Empty/'English' keeps cue's original
+// English-only behavior; 'auto' matches whoever is speaking; any named language
+// (e.g. 'Spanish') asks the model to reply in it. LeetCode ignores this — code
+// answers use the programming language shown on screen.
+function languageDirective(language) {
+  const lang = String(language || '').trim();
+  if (!lang || /^english$/i.test(lang)) {
+    return 'Always respond in clear, natural English. Never switch to another language unless the user explicitly asks for it. ';
+  }
+  if (/^(auto|match|detect)$/i.test(lang)) {
+    return 'Respond in the same language the other person is speaking. If that is unclear, use clear, natural English. ';
+  }
+  return `Always respond in clear, natural ${lang}. Do not switch to another language unless the user explicitly asks for it. `;
+}
 
 const MODES = {
 
@@ -34,10 +46,10 @@ const MODES = {
     userBubble: null,
     small: false,
     resumeMode: 'assist',
-    buildSystem(contextBlock, aiRules) {
+    buildSystem(contextBlock, aiRules, language) {
       return applyRules(buildSystem(
         'You are cue, a discreet real-time copilot overlaid on the user\'s screen during an interview or coding session. ' +
-        BASE_RULES +
+        languageDirective(language) +
         'Look at the screenshot and the recent conversation, decide what the user needs RIGHT NOW, and deliver it directly with no preamble.\n\n' +
         'Detect the question type and respond accordingly:\n' +
         '• BEHAVIORAL ("tell me about a time…"): Give a complete STAR answer (Situation, Task, Action, Result) using the candidate\'s real stories when available. Be specific, include metrics, 3–4 sentences.\n' +
@@ -63,10 +75,10 @@ const MODES = {
     userBubble: 'What should I say?',
     small: false,
     resumeMode: 'say',
-    buildSystem(contextBlock, aiRules) {
+    buildSystem(contextBlock, aiRules, language) {
       return applyRules(buildSystem(
         'You are cue, whispering the perfect reply to the candidate during a live interview. ' +
-        BASE_RULES +
+        languageDirective(language) +
         '"Them" is the interviewer; "You" is the candidate.\n\n' +
         'Draft ONE natural, confident reply the candidate can say out loud, in first person.\n\n' +
         'Rules by question type:\n' +
@@ -93,8 +105,9 @@ const MODES = {
     userBubble: 'Follow-up questions',
     small: true,
     resumeMode: 'followup',
-    buildSystem(contextBlock, aiRules) {
+    buildSystem(contextBlock, aiRules, language) {
       return applyRules(buildSystem(
+        languageDirective(language) +
         'You are cue. Suggest 2–4 sharp follow-up questions the candidate could ask the interviewer.\n' +
         'Base them on what was discussed and the candidate\'s background/target role.\n' +
         'Good follow-ups: show genuine curiosity, demonstrate research, highlight the candidate\'s strengths, or uncover role details.\n' +
@@ -114,8 +127,9 @@ const MODES = {
     userBubble: 'Recap',
     small: true,
     resumeMode: 'recap',
-    buildSystem(contextBlock, aiRules) {
+    buildSystem(contextBlock, aiRules, language) {
       return applyRules(buildSystem(
+        languageDirective(language) +
         'You are cue. Summarize the interview so far:\n' +
         '• Topics covered\n• Questions asked\n• Key answers given\n• Any red flags or areas to strengthen\n' +
         'Use short bullets under bold headers. Be concise.',
@@ -134,10 +148,10 @@ const MODES = {
     userBubble: null,
     small: false,
     resumeMode: 'ask',
-    buildSystem(contextBlock, aiRules) {
+    buildSystem(contextBlock, aiRules, language) {
       return applyRules(buildSystem(
         'You are cue, a real-time copilot with access to the candidate\'s screen and live interview. ' +
-        BASE_RULES +
+        languageDirective(language) +
         'Answer the question directly and concisely. ' +
         'When the question is about the candidate\'s background, use their actual experience. ' +
         'When the question is conceptual, explain clearly with examples. No preamble.',
@@ -156,10 +170,10 @@ const MODES = {
     userBubble: null,   // bubble set dynamically from the question text
     small: false,
     resumeMode: 'say',  // same context budget as 'say'
-    buildSystem(contextBlock, aiRules) {
+    buildSystem(contextBlock, aiRules, language) {
       return applyRules(buildSystem(
         'You are cue, whispering a direct answer to the candidate for ONE specific question. ' +
-        BASE_RULES +
+        languageDirective(language) +
         'The interviewer\'s exact question is provided below. Focus ONLY on answering that question — ignore any other conversation context.\n\n' +
         'Rules:\n' +
         '• BEHAVIORAL ("tell me about a time…"): STAR format using real stories from the candidate\'s background. Situation → Task → Action → Result. Include metrics if available.\n' +
@@ -192,7 +206,28 @@ const MODES = {
         '(use the language shown on screen, else Python), (4) time and space complexity. Keep prose tight.';
     },
     build() { return 'Solve the coding problem shown in the screenshot.'; }
+  },
+
+  // ── Code follow-up: refine an existing solution — strict, no personal context ─
+  codeFollowup: {
+    needsScreen: true,
+    userBubble: null,   // bubble set dynamically from the follow-up text
+    small: false,
+    resumeMode: 'leetcode',
+    buildSystem(_contextBlock, _aiRules) {
+      // Like leetcode: personal context and AI rules are intentionally ignored
+      // so coding answers stay strict and correct.
+      return 'You are an expert competitive programmer refining an existing solution. ' +
+        'The candidate already has a solution (shown below and/or on screen) and is asking a follow-up — ' +
+        'for example: optimize it, explain a specific part, dry-run it on an input, or handle an edge case. ' +
+        'Answer ONLY the follow-up, concisely. If you change the code, return the full updated solution in a ' +
+        'fenced code block and state the new time and space complexity. Keep prose tight.';
+    },
+    build(ctx) {
+      const prior = ctx.lastSolution ? ('Current solution:\n' + ctx.lastSolution + '\n\n') : '';
+      return prior + 'Follow-up request: ' + (ctx.userText || '(no follow-up provided)');
+    }
   }
 };
 
-module.exports = { MODES, formatTranscript };
+module.exports = { MODES, formatTranscript, languageDirective };

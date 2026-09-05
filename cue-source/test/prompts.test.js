@@ -39,9 +39,12 @@ test('all modes have a build function', () => {
 // ── AI rules ────────────────────────────────────────────────────────────────
 const RULES = 'Never use em-dashes.\nReply in 2-3 short bullet points.\nUse a casual tone.';
 
-test('every non-leetcode mode injects AI rules into its system prompt', () => {
+// Strict coding modes never take personal context or AI style rules.
+const STRICT_CODING_MODES = new Set(['leetcode', 'codeFollowup']);
+
+test('every conversational mode injects AI rules into its system prompt', () => {
   for (const [name, mode] of Object.entries(MODES)) {
-    if (name === 'leetcode') continue;
+    if (STRICT_CODING_MODES.has(name)) continue;
     const withRules = mode.buildSystem(null, RULES);
     assert.match(withRules, /--- USER RULES ---/, `${name}.buildSystem should append USER RULES block`);
     assert.ok(withRules.includes(RULES), `${name}.buildSystem should include the user's rules verbatim`);
@@ -63,4 +66,19 @@ test('leetcode mode never applies AI rules (coding answers stay strict)', () => 
   assert.ok(!withRules.includes('USER RULES'), 'leetcode must not include USER RULES');
   assert.ok(!withRules.includes(RULES), 'leetcode must not leak user rules into the prompt');
   assert.match(withRules, /competitive programmer/);
+});
+
+test('codeFollowup refines a prior solution and stays strict', () => {
+  const sys = MODES.codeFollowup.buildSystem('IGNORED_CONTEXT', RULES);
+  assert.ok(!sys.includes('USER RULES'), 'codeFollowup must not include USER RULES');
+  assert.ok(!sys.includes('IGNORED_CONTEXT'), 'codeFollowup must not include personal context');
+  assert.match(sys, /refining an existing solution/i);
+
+  const withPrior = MODES.codeFollowup.build({ userText: 'optimize this', lastSolution: 'def f(): return 1' });
+  assert.match(withPrior, /Current solution:/);
+  assert.match(withPrior, /optimize this/);
+
+  const noPrior = MODES.codeFollowup.build({ userText: 'explain line 3' });
+  assert.ok(!noPrior.includes('Current solution:'));
+  assert.match(noPrior, /explain line 3/);
 });

@@ -23,6 +23,37 @@
 
   --font: -apple-system, 'SF Pro Text', 'SF Pro Display', system-ui, 'Segoe UI', sans-serif;
   --mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+
+  /* Surface tokens (overridden in light mode below; font is never changed). */
+  --glass-bg: rgba(20,22,28,0.72);
+  --toolbar-bg: rgba(28,30,38,0.85);
+  --hover: rgba(255,255,255,0.06);
+  --hover-strong: rgba(255,255,255,0.10);
+  --code-bg: rgba(255,255,255,0.10);
+  --shadow-panel: 0 16px 48px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.10);
+}
+
+/* Light mode: same layout and font, only colors adapt for readability on a
+   light desktop. Dark mode keeps the original glass look. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --tx-1: rgba(20,22,28,0.96);
+    --tx-2: rgba(20,22,28,0.82);
+    --tx-mut: rgba(20,22,28,0.45);
+    --ic: rgba(20,22,28,0.75);
+
+    --bd-hair: rgba(20,22,28,0.12);
+    --bd-strong: rgba(20,22,28,0.22);
+    --fill-1: rgba(20,22,28,0.04);
+    --fill-2: rgba(20,22,28,0.06);
+
+    --glass-bg: rgba(250,250,252,0.82);
+    --toolbar-bg: rgba(250,250,252,0.90);
+    --hover: rgba(20,22,28,0.06);
+    --hover-strong: rgba(20,22,28,0.10);
+    --code-bg: rgba(20,22,28,0.08);
+    --shadow-panel: 0 16px 48px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.60);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -63,7 +94,7 @@ html, body {
   gap: 4px;
   padding: 5px 6px;
   border-radius: var(--r-pill);
-  background: rgba(28,30,38,0.85);
+  background: var(--toolbar-bg);
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 8px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.08);
   backdrop-filter: blur(24px) saturate(160%);
@@ -159,12 +190,12 @@ button:focus { outline: none; }
 #live-dot.off { background: rgba(255,255,255,0.28); box-shadow: none; animation: none; }
 
 .glass {
-  background: rgba(20,22,28,0.72);
+  background: var(--glass-bg);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   backdrop-filter: blur(40px) saturate(180%);
   border: 1px solid var(--bd-hair);
   border-radius: var(--r-panel);
-  box-shadow: 0 16px 48px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.10);
+  box-shadow: var(--shadow-panel);
 }
 #panel { padding: 20px 22px; animation: overlayIn 260ms cubic-bezier(0.22,1,0.36,1); }
 #panel.collapsed { display: none; }
@@ -451,6 +482,20 @@ button:focus { outline: none; }
   transition: background 140ms ease;
 }
 .more-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* Session cost/token meter (bring-your-own-key). Estimate only. */
+.cost-pill {
+  font: 500 11px var(--font);
+  color: var(--tx-mut);
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--bd-hair);
+  background: var(--fill-1);
+  white-space: nowrap;
+  align-self: center;
+  margin-right: 6px;
+  cursor: default;
+}
 #send-btn {
   width: 32px; height: 32px; border-radius: 50%;
   border: none; background: var(--accent); color: #fff;
@@ -475,7 +520,7 @@ button:focus { outline: none; }
 .s-close { border: none; background: var(--accent); color: #fff; font-weight: 600; font-size: 13px; padding: 6px 14px; border-radius: var(--r-pill); cursor: pointer; }
 
 /* Tab bar */
-.s-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-shrink: 0; overflow-x: auto; }
+.s-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-shrink: 0; overflow-x: auto; flex-wrap: wrap; }
 .s-tab {
   flex: 1; min-width: 72px; padding: 7px 4px; border-radius: var(--r-8);
   border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03);
@@ -501,6 +546,37 @@ button:focus { outline: none; }
 .s-field span { width: 78px; color: var(--tx-mut); font-size: 12px; flex-shrink: 0; }
 .s-field input { flex: 1; padding: 8px 10px; border-radius: var(--r-8); border: 1px solid rgba(255,255,255,0.14); background: rgba(0,0,0,0.25); color: var(--tx-1); font-size: 13px; font-family: var(--font); outline: none; }
 .s-field input:focus { border-color: var(--accent); }
+.s-select { width: 100%; padding: 8px 10px; border-radius: var(--r-8); border: 1px solid var(--bd-strong); background: var(--fill-2); color: var(--tx-1); font: 500 13px var(--font); outline: none; cursor: pointer; }
+.s-select:focus { border-color: var(--accent); }
+.s-profiles { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--bd-hair); border-radius: var(--r-8); background: var(--fill-1); }
+.s-profile-row { display: flex; gap: 8px; align-items: center; }
+.s-profile-row .s-select { flex: 1; }
+.s-profile-btn { padding: 8px 12px; border-radius: var(--r-8); border: 1px solid var(--bd-strong); background: var(--fill-2); color: var(--tx-1); font: 500 12px var(--font); cursor: pointer; white-space: nowrap; }
+.s-profile-btn:hover { background: var(--hover-strong); }
+.s-profile-btn.danger:hover { background: rgba(239,68,68,0.16); color: #ff6b6b; border-color: rgba(239,68,68,0.35); }
+
+/* Practice tab: mock interview, flashcards, progress */
+.mock-live { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; }
+.mock-progress { font: 600 12px var(--font); color: var(--tx-mut); }
+.mock-question { font: 600 14px var(--font); color: var(--tx-1); padding: 10px 12px; border-radius: var(--r-8); border: 1px solid var(--bd-hair); background: var(--fill-2); }
+.mock-feedback { font: 500 12px var(--font); color: var(--tx-2); }
+.mock-feedback ul { margin: 6px 0 0; padding-left: 18px; }
+.mock-feedback li { margin: 3px 0; }
+.mock-score { display: inline-block; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill); margin-right: 6px; }
+.mock-score.good { background: rgba(34,197,94,0.18); color: #4ade80; }
+.mock-score.mid { background: rgba(234,179,8,0.20); color: #eab308; }
+.mock-score.low { background: rgba(239,68,68,0.18); color: #f87171; }
+#mock-answer { width: 100%; padding: 8px 10px; border-radius: var(--r-8); border: 1px solid var(--bd-strong); background: var(--fill-2); color: var(--tx-1); font: 400 13px var(--font); outline: none; resize: vertical; }
+#mock-answer:focus { border-color: var(--accent); }
+.flash-list { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.flash-card { border: 1px solid var(--bd-hair); border-radius: var(--r-8); background: var(--fill-1); padding: 8px 10px; }
+.flash-card .cat { font: 600 10px var(--font); color: var(--tx-mut); text-transform: uppercase; letter-spacing: .04em; }
+.flash-card .q { font: 600 13px var(--font); color: var(--tx-1); margin-top: 2px; }
+.flash-card .a { font: 400 12px var(--font); color: var(--tx-2); margin-top: 4px; white-space: pre-wrap; }
+.progress-panel { font: 500 12px var(--font); color: var(--tx-2); }
+.progress-stat { display: inline-block; margin-right: 12px; }
+.progress-list { margin: 6px 0 0; padding: 0; list-style: none; }
+.progress-list li { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--bd-hair); }
 .s-help { color: var(--tx-mut); font-size: 11px; line-height: 1.4; margin: 4px 0 2px 88px; }
 .s-select {
   width: 100%; padding: 8px 10px; border-radius: var(--r-8);

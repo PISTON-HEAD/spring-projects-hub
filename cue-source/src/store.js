@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 const { normalizeBaseUrl } = require('./openai-compatible');
+const profilesLib = require('./profiles');
+const progressLib = require('./progress');
 
 const FILE = path.join(app.getPath('userData'), 'cue-data.json');
 
@@ -20,6 +22,10 @@ const DEFAULTS = {
   },
   smart: false,
   baseUrl: '',
+  // Response language for conversational modes. '' or 'English' keeps the
+  // original English-only behavior; 'auto' matches the speaker; a named
+  // language (e.g. 'Spanish') asks the model to reply in it.
+  responseLanguage: 'English',
   minimaxRegion: 'global_en',
   apiKeys: { openai: '', anthropic: '', gemini: '', deepgram: '', custom: '', ollama: '', groq: '', minimax: '' , azure: '' },
   azureEndpoint: '',
@@ -42,6 +48,13 @@ const DEFAULTS = {
   // Window position
   windowX: null,
   windowY: null,
+  // Named settings profiles (one per company/interview). Content only — never
+  // API keys. See src/profiles.js.
+  profiles: {},
+  activeProfile: '',
+  // Compact per-session practice summaries for progress tracking. See
+  // src/progress.js. Capped in the store when appending.
+  sessionHistory: [],
   models: {
     openai: { fast: 'gpt-4o-mini', smart: 'gpt-4o' },
     anthropic: { fast: 'claude-3-5-haiku-latest', smart: 'claude-3-5-sonnet-latest' },
@@ -95,5 +108,41 @@ module.exports = {
     data = nextSettings;
     save();
     return data;
+  },
+  // Profiles replace `data` wholesale (not via deepMerge) so a deleted profile
+  // is actually removed rather than merged back in.
+  saveProfile(name) {
+    load();
+    data = profilesLib.saveProfile(data, name);
+    save();
+    return profilesLib.listProfiles(data);
+  },
+  loadProfile(name) {
+    load();
+    data = profilesLib.loadProfile(data, name);
+    data.baseUrl = normalizeBaseUrl(data.baseUrl);
+    save();
+    return data;
+  },
+  deleteProfile(name) {
+    load();
+    data = profilesLib.deleteProfile(data, name);
+    save();
+    return profilesLib.listProfiles(data);
+  },
+  listProfiles() {
+    load();
+    return profilesLib.listProfiles(data);
+  },
+  // Append a finished-session summary to the capped history and persist it.
+  addSessionRecord(record) {
+    load();
+    data.sessionHistory = progressLib.appendHistory(data.sessionHistory, record, 100);
+    save();
+    return data.sessionHistory;
+  },
+  getSessionHistory() {
+    load();
+    return Array.isArray(data.sessionHistory) ? data.sessionHistory : [];
   }
 };

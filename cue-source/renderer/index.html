@@ -64,6 +64,7 @@
                 <button id="history-btn" class="history-btn" title="View conversation history"><span class="ic"></span></button>
                 <button id="more-btn" class="more-btn" title="Settings"></button>
                 <div class="spacer"></div>
+                <span id="cost-pill" class="cost-pill" title="Estimated cost this session (based on your model's list price)">—</span>
                 <button id="send-btn" title="Send"></button>
               </div>
             </div>
@@ -111,6 +112,7 @@
         <button class="s-tab" data-tab="prep">🎯 Interview Prep</button>
         <button class="s-tab" data-tab="style">✨ Style</button>
         <button class="s-tab" data-tab="qa">💬 Q&amp;A</button>
+        <button class="s-tab" data-tab="practice">🎓 Practice</button>
       </div>
 
       <!-- Tab: Keys -->
@@ -216,6 +218,20 @@
 
       <!-- Tab: Profile -->
       <div class="s-body s-tab-pane hidden" data-pane="profile">
+        <label class="s-label">Profiles <span class="s-hint">save this résumé/JD/prep set per company and switch between them</span></label>
+        <div class="s-profiles">
+          <div class="s-profile-row">
+            <select id="profile-select" class="s-select"><option value="">— saved profiles —</option></select>
+            <button class="s-profile-btn" id="profile-load-btn">Load</button>
+            <button class="s-profile-btn danger" id="profile-delete-btn">Delete</button>
+          </div>
+          <div class="s-field s-upload">
+            <input id="profile-name" type="text" placeholder="New profile name (e.g. Acme — Backend)" autocomplete="off" />
+            <button class="s-upload-btn" id="profile-save-btn">Save current</button>
+          </div>
+          <div class="s-hint" id="profile-status"></div>
+        </div>
+
         <label class="s-label">Your resume <span class="s-hint">paste full resume, or import a PDF/DOCX</span></label>
         <div class="s-field s-upload"><span class="s-filename" id="resume-filename"></span><button class="s-upload-btn" id="upload-resume-btn">Import PDF/DOCX</button></div>
         <textarea id="resume-text" rows="7" spellcheck="false" placeholder="Paste your full resume here. cue will extract Name, Summary, Experience, Skills, Projects, and Education automatically."></textarea>
@@ -251,6 +267,21 @@
 
       <!-- Tab: Style -->
       <div class="s-body s-tab-pane hidden" data-pane="style">
+        <label class="s-label">Response language <span class="s-hint">what language cue replies in</span></label>
+        <select id="response-language" class="s-select">
+          <option value="English">English (default)</option>
+          <option value="auto">Auto — match the other person</option>
+          <option value="Spanish">Spanish</option>
+          <option value="French">French</option>
+          <option value="German">German</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Italian">Italian</option>
+          <option value="Hindi">Hindi</option>
+          <option value="Mandarin Chinese">Mandarin Chinese</option>
+          <option value="Japanese">Japanese</option>
+          <option value="Korean">Korean</option>
+          <option value="Arabic">Arabic</option>
+        </select>
         <label class="s-label">AI rules <span class="s-hint">how the AI should write its responses</span></label>
         <textarea id="ai-rules" rows="10" spellcheck="false" maxlength="2000" placeholder="e.g.
 - Never use em-dashes.
@@ -263,6 +294,49 @@
         <div class="s-hint-block">
           These rules tell cue <strong>how</strong> to write, not <strong>what</strong> to say. Use one imperative sentence per line (e.g. <em>Never use em-dashes.</em>). They apply to every mode except coding-problem solves (LeetCode), which stays strict. Stored locally; never sent anywhere except the AI provider when cue answers a question.
         </div>
+      </div>
+
+      <!-- Tab: Practice -->
+      <div class="s-body s-tab-pane hidden" data-pane="practice">
+        <label class="s-label">Mock interview <span class="s-hint">cue plays the interviewer and scores your answers</span></label>
+        <div class="s-profile-row" id="mock-setup">
+          <select id="mock-count" class="s-select">
+            <option value="3">3 questions</option>
+            <option value="5" selected>5 questions</option>
+            <option value="8">8 questions</option>
+          </select>
+          <select id="mock-difficulty" class="s-select">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+          <button class="s-profile-btn" id="mock-start-btn">Start</button>
+        </div>
+
+        <div id="mock-live" class="mock-live hidden">
+          <div class="mock-progress" id="mock-progress"></div>
+          <div class="mock-question" id="mock-question"></div>
+          <textarea id="mock-answer" rows="4" spellcheck="false" placeholder="Type or dictate your answer, then Submit."></textarea>
+          <div class="s-profile-row">
+            <button class="s-profile-btn" id="mock-submit-btn">Submit answer</button>
+            <button class="s-profile-btn" id="mock-finish-btn">Finish &amp; report</button>
+          </div>
+          <div id="mock-feedback" class="mock-feedback"></div>
+        </div>
+
+        <label class="s-label">Flashcards <span class="s-hint">practice Q&amp;A from your resume + JD</span></label>
+        <div class="s-profile-row">
+          <select id="flash-count" class="s-select">
+            <option value="6">6 cards</option>
+            <option value="8" selected>8 cards</option>
+            <option value="12">12 cards</option>
+          </select>
+          <button class="s-profile-btn" id="flash-generate-btn">Generate</button>
+        </div>
+        <div id="flash-list" class="flash-list"></div>
+
+        <label class="s-label">Progress <span class="s-hint">your recent practice sessions</span></label>
+        <div id="progress-panel" class="progress-panel"></div>
       </div>
 
 

@@ -550,6 +550,25 @@
     await cue.settingsSet({ smart: settings.smart });
   });
 
+  // Usage / cost meter (bring-your-own-key). Estimate only — see src/usage.js.
+  const costPill = $('#cost-pill');
+  function formatTokens(n) {
+    if (!n) return '0';
+    if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k';
+    return String(n);
+  }
+  function renderUsage(snap) {
+    if (!costPill || !snap) return;
+    const cost = !snap.priced ? '—' : (snap.costUsd > 0 && snap.costUsd < 0.01 ? '<$0.01' : '$' + snap.costUsd.toFixed(2));
+    costPill.textContent = `${formatTokens(snap.totalTokens)} tok · ${cost}`;
+    costPill.title = `${snap.requests} request${snap.requests === 1 ? '' : 's'} · ${snap.totalTokens} tokens this session · est. ${cost}` +
+      (snap.priced ? '' : ' (this model has no list price on file)');
+  }
+  if (costPill && cue.usageGet) {
+    cue.usageGet().then(renderUsage).catch(() => {});
+    cue.on('usage:update', renderUsage);
+  }
+
   // Hide / collapse
   function toggleHide() {
     const collapsed = $('#panel').classList.toggle('collapsed');
@@ -1290,10 +1309,14 @@
     $('#work-style').value = settings.workStyle || '';
     // Style tab
     $('#ai-rules').value = settings.aiRules || '';
+    const langSel = $('#response-language');
+    if (langSel) langSel.value = settings.responseLanguage || 'English';
     updateAiRulesCounter();
     // Q&A tab
     $('#salary-target').value = settings.salaryTarget || '';
     $('#questions-to-ask').value = settings.questionsToAsk || '';
+    refreshProfiles();
+    refreshProgress();
   }
 
   // Whoever cue has been told it may answer questions for. Empty is the normal
@@ -1348,6 +1371,208 @@
     $('#job-description').value = res.text || '';
     showStatus('Imported ' + res.fileName + ' — press Save to keep it.');
   });
+
+  // ---- settings profiles: save/load/delete a named resume+JD+prep set ----
+  async function refreshProfiles(selectName) {
+    const sel = $('#profile-select');
+    if (!sel || !cue.profilesList) return;
+    let list = [];
+    try { list = await cue.profilesList(); } catch (_) { list = []; }
+    sel.innerHTML = '<option value="">— saved profiles —</option>';
+    for (const p of list) {
+      const opt = document.createElement('option');
+      opt.value = p.name;
+      opt.textContent = p.title ? `${p.name} — ${p.title}` : p.name;
+      if ((selectName && p.name === selectName) || (!selectName && p.active)) opt.selected = true;
+      sel.append(opt);
+    }
+  }
+  function setProfileStatus(msg) { const el = $('#profile-status'); if (el) el.textContent = msg || ''; }
+
+  const profileSaveBtn = $('#profile-save-btn');
+  if (profileSaveBtn) profileSaveBtn.addEventListener('click', async () => {
+    const nameEl = $('#profile-name');
+    const name = (nameEl.value || '').trim();
+    if (!name) { setProfileStatus('Enter a name to save this profile.'); nameEl.focus(); return; }
+    const ok = await saveSettings(); // persist current edits so the profile snapshots them
+    if (!ok) return;
+    try {
+      await cue.profileSave(name);
+      nameEl.value = '';
+      await refreshProfiles(name);
+      setProfileStatus(`Saved profile "${name}".`);
+    } catch (e) { setProfileStatus('Could not save: ' + ((e && e.message) || e)); }
+  });
+
+  const profileLoadBtn = $('#profile-load-btn');
+  if (profileLoadBtn) profileLoadBtn.addEventListener('click', async () => {
+    const name = $('#profile-select').value;
+    if (!name) { setProfileStatus('Pick a profile to load.'); return; }
+    try {
+      const next = await cue.profileLoad(name);
+      if (next) { settings = next; fillSettings(); }
+      setProfileStatus(`Loaded "${name}".`);
+    } catch (e) { setProfileStatus('Could not load: ' + ((e && e.message) || e)); }
+  });
+
+  const profileDeleteBtn = $('#profile-delete-btn');
+  if (profileDeleteBtn) profileDeleteBtn.addEventListener('click', async () => {
+    const name = $('#profile-select').value;
+    if (!name) { setProfileStatus('Pick a profile to delete.'); return; }
+    try {
+      await cue.profileDelete(name);
+      await refreshProfiles();
+      setProfileStatus(`Deleted "${name}".`);
+    } catch (e) { setProfileStatus('Could not delete: ' + ((e && e.message) || e)); }
+  });
+
+  // ---- practice tab: mock interview + flashcards + progress ----
+  let mockAnswerStart = 0;
+  let lastReportMarkdown = '';
+  function hesc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function scoreClass(score) { return score >= 70 ? 'good' : score >= 55 ? 'mid' : 'low'; }
+
+  function renderMockQuestion(q, progress) {
+    const qEl = $('#mock-question');
+    const pEl = $('#mock-progress');
+    if (progress && pEl) pEl.textContent = `Question ${Math.min(progress.index + 1, progress.total)} of ${progress.total}`;
+    if (qEl) qEl.textContent = q ? q.question : '';
+    mockAnswerStart = Date.now();
+  }
+
+  function renderFeedback(feedback) {
+    const el = $('#mock-feedback');
+    if (!el || !feedback) return;
+    const m = feedback.metrics || {};
+    const tips = (feedback.tips || []).map((t) => `<li>${hesc(t)}</li>`).join('');
+    el.innerHTML =
+      `<span class="mock-score ${scoreClass(feedback.score)}">${feedback.score}/100</span>` +
+      `<span>${m.wordCount || 0} words` + (m.wpm != null ? ` · ${m.wpm} wpm` : '') +
+      ` · ${m.fillerCount || 0} fillers · STAR ${m.starCovered || 0}/4</span>` +
+      (tips ? `<ul>${tips}</ul>` : '');
+  }
+
+  const mockStartBtn = $('#mock-start-btn');
+  if (mockStartBtn) mockStartBtn.addEventListener('click', async () => {
+    if (!cue.mockStart) return;
+    mockStartBtn.disabled = true;
+    mockStartBtn.textContent = 'Preparing…';
+    try {
+      const count = parseInt($('#mock-count').value, 10) || 5;
+      const difficulty = $('#mock-difficulty').value || 'medium';
+      const res = await cue.mockStart({ count, difficulty });
+      $('#mock-setup').classList.add('hidden');
+      $('#mock-live').classList.remove('hidden');
+      $('#mock-feedback').innerHTML = '';
+      $('#mock-answer').value = '';
+      renderMockQuestion(res.question, res.progress);
+    } catch (e) {
+      showStatus('Could not start practice: ' + ((e && e.message) || e));
+    } finally {
+      mockStartBtn.disabled = false;
+      mockStartBtn.textContent = 'Start';
+    }
+  });
+
+  const mockSubmitBtn = $('#mock-submit-btn');
+  if (mockSubmitBtn) mockSubmitBtn.addEventListener('click', async () => {
+    const text = $('#mock-answer').value.trim();
+    if (!text) { showStatus('Type an answer first.'); return; }
+    const durationMs = mockAnswerStart ? Date.now() - mockAnswerStart : undefined;
+    mockSubmitBtn.disabled = true;
+    try {
+      const res = await cue.mockAnswer({ text, durationMs });
+      renderFeedback(res.feedback);
+      $('#mock-answer').value = '';
+      if (res.done) {
+        $('#mock-question').textContent = 'All questions answered — press "Finish & report".';
+        $('#mock-progress').textContent = `${res.progress.answered} of ${res.progress.total} answered`;
+      } else {
+        renderMockQuestion(res.nextQuestion, res.progress);
+      }
+    } catch (e) {
+      showStatus('Could not score answer: ' + ((e && e.message) || e));
+    } finally {
+      mockSubmitBtn.disabled = false;
+    }
+  });
+
+  const mockFinishBtn = $('#mock-finish-btn');
+  if (mockFinishBtn) mockFinishBtn.addEventListener('click', async () => {
+    try {
+      const res = await cue.mockFinish();
+      $('#mock-live').classList.add('hidden');
+      $('#mock-setup').classList.remove('hidden');
+      if (res && !res.canceled) {
+        lastReportMarkdown = res.reportMarkdown || '';
+        const fb = $('#mock-feedback');
+        if (fb) {
+          fb.innerHTML = '<div>Session saved. <button class="s-profile-btn report-save-btn" id="report-save-btn">Save report (.md)</button></div>';
+          const rsb = $('#report-save-btn');
+          if (rsb) rsb.addEventListener('click', async () => {
+            try {
+              const r = await cue.reportSave({ markdown: lastReportMarkdown });
+              if (r && r.path) setProfileStatus('Report saved.');
+              else if (r && r.error) setProfileStatus('Save failed: ' + r.error);
+            } catch (err) { setProfileStatus('Save failed: ' + ((err && err.message) || err)); }
+          });
+        }
+        refreshProgress();
+      }
+    } catch (e) { showStatus('Could not finish: ' + ((e && e.message) || e)); }
+  });
+
+  // Flashcards
+  const flashBtn = $('#flash-generate-btn');
+  if (flashBtn) flashBtn.addEventListener('click', async () => {
+    if (!cue.flashcardsGenerate) return;
+    flashBtn.disabled = true;
+    flashBtn.textContent = 'Generating…';
+    try {
+      const count = parseInt($('#flash-count').value, 10) || 8;
+      const res = await cue.flashcardsGenerate({ count });
+      const list = $('#flash-list');
+      list.innerHTML = '';
+      for (const c of (res.cards || [])) {
+        const div = document.createElement('div');
+        div.className = 'flash-card';
+        div.innerHTML = (c.category ? `<div class="cat">${hesc(c.category)}</div>` : '') +
+          `<div class="q">${hesc(c.question)}</div>` +
+          (c.answer ? `<div class="a">${hesc(c.answer)}</div>` : '');
+        list.append(div);
+      }
+      if (!res.cards || !res.cards.length) list.innerHTML = '<div class="s-hint">No flashcards generated.</div>';
+    } catch (e) {
+      showStatus('Could not generate flashcards: ' + ((e && e.message) || e));
+    } finally {
+      flashBtn.disabled = false;
+      flashBtn.textContent = 'Generate';
+    }
+  });
+
+  // Progress panel
+  async function refreshProgress() {
+    const el = $('#progress-panel');
+    if (!el || !cue.progressGet) return;
+    let history = [];
+    try { history = await cue.progressGet(); } catch (_) { history = []; }
+    const scored = (history || []).filter((h) => Number.isFinite(h.avgScore));
+    if (!scored.length) { el.innerHTML = '<div class="s-hint">No sessions yet — run a mock interview.</div>'; return; }
+    const scores = scored.map((h) => h.avgScore);
+    const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    const best = Math.max(...scores);
+    const latest = scores[scores.length - 1];
+    const rows = history.slice(-6).reverse().map((h) => {
+      const d = h.date ? new Date(h.date).toISOString().slice(0, 10) : '—';
+      return `<li><span>${d}</span><span>${h.questions || 0} Q · ${h.avgScore != null ? h.avgScore + '/100' : '—'}</span></li>`;
+    }).join('');
+    el.innerHTML =
+      `<span class="progress-stat">Sessions: <strong>${scored.length}</strong></span>` +
+      `<span class="progress-stat">Latest: <strong>${latest}/100</strong></span>` +
+      `<span class="progress-stat">Best: <strong>${best}/100</strong></span>` +
+      `<span class="progress-stat">Avg: <strong>${avg}/100</strong></span>` +
+      `<ul class="progress-list">${rows}</ul>`;
+  }
 
   function statusText() {
     const k = settings.apiKeys;
@@ -1560,6 +1785,8 @@
     settings.workStyle = $('#work-style').value.trim();
     // Style tab
     settings.aiRules = $('#ai-rules').value.trim();
+    const langSelSave = $('#response-language');
+    if (langSelSave) settings.responseLanguage = langSelSave.value || 'English';
     // Q&A
     settings.salaryTarget = $('#salary-target').value.trim();
     settings.questionsToAsk = $('#questions-to-ask').value.trim();

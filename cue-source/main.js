@@ -11,6 +11,13 @@ const { rms16 } = require('./src/wav');
 const { createStreamingSTT } = require('./src/stt-streaming');
 const { AdaptiveVAD, AudioRingBuffer } = require('./src/vad');
 const { buildInterviewContext, detectCategory } = require('./src/interview-context');
+const { createUsageMeter } = require('./src/usage');
+const { buildSessionReport } = require('./src/report');
+const { analyzeAnswer } = require('./src/answer-metrics');
+const { defaultQuestionPlan, buildInterviewerSystem, createMockSession, DEFAULT_CATEGORIES } = require('./src/mock-interview');
+const { buildFlashcardSystem, parseFlashcards, fallbackFlashcards } = require('./src/flashcards');
+const { summarizeSession } = require('./src/progress');
+const fs = require('fs');
 const { startAppLink, stopAppLink, recordEvent, appLinkConsentState, revokeAppLinkCaller } = require('./src/applink');
 
 // macOS system-audio loopback (the "them" channel via getDisplayMedia) does not
@@ -51,6 +58,8 @@ let permWin = null;
 // -------- capture / transcript state --------
 const state = { capturing: false, busy: false, transcribing: { you: false, them: false } };
 let sttDisabled = false; // set when the key can't reach any speech model (stops retry spam)
+let lastLeetcodeSolution = ''; // most recent coding solution, so codeFollowup can refine it
+const usageMeter = createUsageMeter(); // session token/cost estimate for the bring-your-own-key meter
 const buffers = { you: [], them: [] };
 const transcript = []; // { channel, text, ts } — capped at MAX_TRANSCRIPT_TURNS
 const MAX_TRANSCRIPT_TURNS = 200; // ~30–40 minutes of conversation at normal pace
@@ -524,8 +533,8 @@ async function runFeature(mode, userText) {
 
     const settingsForPrompt = store.getSettings();
     const contextBlock = buildInterviewContext(settingsForPrompt, mode, transcript);
-    const system = def.buildSystem ? def.buildSystem(contextBlock, settingsForPrompt.aiRules || '') : (def.system || '');
-    const built = def.build({ transcript, userText: userText || '' });
+    const system = def.buildSystem ? def.buildSystem(contextBlock, settingsForPrompt.aiRules || '', settingsForPrompt.responseLanguage || '') : (def.system || '');
+    const built = def.build({ transcript, userText: userText || '', lastSolution: lastLeetcodeSolution });
 
     // Watchdog: a provider that stalls mid-stream would otherwise hang the await forever,
     // leaving state.busy = true and wedging every later question until an app restart.
@@ -538,8 +547,9 @@ async function runFeature(mode, userText) {
       };
       rearm();
     });
+    let responseText = '';
     try {
-      await Promise.race([
+      responseText = await Promise.race([
         llm.stream({
           system,
           turns: [{ role: 'user', text: built }],
@@ -547,11 +557,20 @@ async function runFeature(mode, userText) {
           onToken: (t) => { if (streamSettled) return; rearm(); send('llm:token', { text: t }); }
         }),
         stalled
-      ]);
+      ]) || '';
     } finally {
       streamSettled = true;
       clearTimeout(watchdog);
     }
+    // Remember the latest coding solution so a follow-up can refine it.
+    if ((mode === 'leetcode' || mode === 'codeFollowup') && responseText.trim()) {
+      lastLeetcodeSolution = responseText;
+    }
+    // Metering must never break a response, hence the guard.
+    try {
+      usageMeter.record({ model: llm.model, inputText: system + '\n' + built, outputText: responseText, hasImage: !!imageDataUrl });
+      send('usage:update', usageMeter.snapshot());
+    } catch (_) { /* ignore metering errors */ }
     send('llm:done', {});
   } catch (e) {
     recordEvent({ level: 'error', event: 'llm_failed', msg: e && e.message ? e.message : String(e), frame: 'runFeature', context: { mode, provider: store.getSettings().provider } });
@@ -623,8 +642,128 @@ ipcMain.handle('transcript:clear', () => {
   return { ok: true };
 });
 ipcMain.on('ask', (_e, payload) => runFeature(payload.mode, payload.text));
+ipcMain.handle('usage:get', () => usageMeter.snapshot());
+ipcMain.handle('usage:reset', () => { usageMeter.reset(); return usageMeter.snapshot(); });
 ipcMain.on('mic:pcm', (_e, arrayBuffer) => { if (state.capturing) routeAudio('you', arrayBuffer); });
 ipcMain.on('system:pcm', (_e, arrayBuffer) => { if (state.capturing) routeAudio('them', arrayBuffer); });
+
+// -------- settings profiles (one per company/interview) --------
+ipcMain.handle('profiles:list', () => store.listProfiles());
+ipcMain.handle('profiles:save', (_e, name) => store.saveProfile(name));
+ipcMain.handle('profiles:load', (_e, name) => store.loadProfile(name));
+ipcMain.handle('profiles:delete', (_e, name) => store.deleteProfile(name));
+
+// -------- progress history --------
+ipcMain.handle('progress:get', () => store.getSessionHistory());
+
+// -------- practice / mock interview --------
+let mockSession = null;
+let mockStartedAt = 0;
+
+function firstLine(s) { return String(s || '').split('\n')[0].slice(0, 120); }
+
+// Ask the LLM for a tailored question set; fall back to the offline bank if the
+// provider isn't configured or the reply can't be parsed.
+async function generateMockQuestions({ count = 5, categories, difficulty = 'medium' } = {}) {
+  const settings = store.getSettings();
+  let llm = null;
+  try { llm = createLLM(settings); } catch (_) { llm = null; }
+  if (llm && llm.ready) {
+    try {
+      const system = buildInterviewerSystem({
+        jobTitle: firstLine(settings.jobDescription),
+        jobDescription: settings.jobDescription,
+        resumeText: settings.resumeText,
+        difficulty,
+        categories
+      });
+      const ask = `Generate exactly ${count} interview questions as a JSON array of objects ` +
+        `{"category":"...","question":"..."}. Use these categories where relevant: ` +
+        `${(categories || DEFAULT_CATEGORIES).join(', ')}. Return ONLY the JSON array.`;
+      let out = '';
+      await llm.stream({ system, turns: [{ role: 'user', text: ask }], onToken: (t) => { out += t; } });
+      const parsed = parseFlashcards(out).map((c) => ({ category: c.category, question: c.question }));
+      if (parsed.length) return parsed.slice(0, count);
+    } catch (_) { /* fall through to offline plan */ }
+  }
+  return defaultQuestionPlan({ categories, count });
+}
+
+ipcMain.handle('mock:start', async (_e, opts = {}) => {
+  const questions = await generateMockQuestions(opts);
+  mockSession = createMockSession({ questions });
+  mockStartedAt = Date.now();
+  return { question: mockSession.current(), progress: mockSession.progress(), total: mockSession.total };
+});
+
+ipcMain.handle('mock:answer', (_e, payload = {}) => {
+  if (!mockSession) throw new Error('No active practice session.');
+  const cur = mockSession.current();
+  const category = cur ? cur.category : null;
+  mockSession.submitAnswer(payload.text || '', payload.durationMs);
+  const feedback = analyzeAnswer(payload.text || '', { durationMs: payload.durationMs, category });
+  mockSession.next();
+  return { feedback, nextQuestion: mockSession.current(), progress: mockSession.progress(), done: mockSession.isDone() };
+});
+
+ipcMain.handle('mock:finish', () => {
+  if (!mockSession) return { canceled: true };
+  const answers = mockSession.getResults();
+  const endedAt = Date.now();
+  const usage = usageMeter.snapshot();
+  const settings = store.getSettings();
+  const record = summarizeSession({ startedAt: mockStartedAt, endedAt, answers, usage });
+  store.addSessionRecord(record);
+  const reportMarkdown = buildSessionReport({
+    title: 'cue Practice Session',
+    startedAt: mockStartedAt,
+    endedAt,
+    jobTitle: firstLine(settings.jobDescription),
+    provider: settings.provider,
+    answers,
+    usage
+  });
+  mockSession = null;
+  return { canceled: false, reportMarkdown, record };
+});
+
+// -------- report export --------
+ipcMain.handle('report:save', async (_e, payload = {}) => {
+  const res = await dialog.showSaveDialog(win, {
+    title: 'Save session report',
+    defaultPath: 'cue-session-report.md',
+    filters: [{ name: 'Markdown', extensions: ['md'] }]
+  });
+  if (res.canceled || !res.filePath) return { canceled: true };
+  try {
+    fs.writeFileSync(res.filePath, String(payload.markdown || ''), 'utf8');
+    return { canceled: false, path: res.filePath };
+  } catch (e) {
+    return { canceled: false, error: (e && e.message) || String(e) };
+  }
+});
+
+// -------- flashcards --------
+ipcMain.handle('flashcards:generate', async (_e, opts = {}) => {
+  const settings = store.getSettings();
+  let llm = null;
+  try { llm = createLLM(settings); } catch (_) { llm = null; }
+  if (llm && llm.ready) {
+    try {
+      const system = buildFlashcardSystem({
+        jobDescription: settings.jobDescription,
+        resumeText: settings.resumeText,
+        count: opts.count,
+        categories: opts.categories
+      });
+      let out = '';
+      await llm.stream({ system, turns: [{ role: 'user', text: 'Generate the flashcards now.' }], onToken: (t) => { out += t; } });
+      const cards = parseFlashcards(out);
+      if (cards.length) return { cards, source: 'ai' };
+    } catch (_) { /* fall through to offline cards */ }
+  }
+  return { cards: fallbackFlashcards({ categories: opts.categories, count: opts.count }), source: 'offline' };
+});
 ipcMain.on('mouse:ignore', (_e, v) => { if (win) win.setIgnoreMouseEvents(!!v, { forward: true }); });
 ipcMain.on('open-pane', (_e, url) => { shell.openExternal(url).catch(() => {}); });
 ipcMain.on('app:quit', () => app.quit());
@@ -805,9 +944,9 @@ function launchApp() {
 
 // -------- lifecycle --------
 app.whenReady().then(async () => {
-  app.setName('MicrosoftEdgeUpdate');
+  app.setName('cue');
   if (isWindows) {
-    process.title = 'MicrosoftEdgeUpdate';
+    process.title = 'cue';
   }
 
   if (isMac) {
